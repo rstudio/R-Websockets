@@ -9,6 +9,7 @@ f = function(DATA,WSI,COOKIE)
 {
   n = as.numeric(rawToChar(DATA))
   if(is.na(n)) n = 5
+  n = max(n, 2)
   A = rbind(1:n, runif(n))
   opt = list(lines=list(show='true'),
              color='#0000FF',
