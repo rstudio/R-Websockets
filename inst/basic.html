@@ -1,0 +1,135 @@
+<html>
+<head>
+  <title>R/Websockets</title>
+</head>
+<style type="text/css" media="screen">
+.fright {
+  float: right;
+  margin: 0 0 10px 10px;
+  clear: right;
+}
+</style>
+<body>
+<img class="fright" src="data:image/png;base64,
+iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJ
+bWFnZVJlYWR5ccllPAAABOVJREFUeNrsWz1MFEEUfnu75w8ROcEY/IVGpOQKLTT+FTYmBGy09JTW
+wsqYWKiFjYnRwhajrRXE0iCHhYUWHJUcNoe/FCCnklNgd8eZvRF2l9m9ndnZn4u85GVzf7sz33zv
+ve/N7gGI2R3siPod2/vI5u7XLD+Dfdz2ehF7jv62wPiu13WFLQPpMjL52/T4MI4LahLO0UVXR5Zd
+x95tY0KkJoMBBUrjccZnCvW7tveKtveLHuccjItyaQuB2E1GCFSog4RQGLGtfrHBOd2hV8VeSoIB
+z7CfpR7WprA/opO5whF646JJU0shK0m+mLCxKpUhULFRtOJKcI2+76ZpyfW9Kg0F92dV13nA5zyb
+tmmbFsyUIF/63N9ToOqsmaxy4MXMU1lJ8LJkuRuHkWTZEICgOqDShOwONOagAMw2IQCBxpy4EGpp
+l9OOGCsAy0tmZEIoshBQtyiSAECRhsB/nwNSbwihSPcDUq+zjVWxMQcCAAuKarMxIuiYpVSBTG8e
+sjcec/8um83CzrY2oWvWHhRAL79dDwEj2hDwa3VTYaYhNlYpSRDVluKf8PwXKefhAcAzptDHD/ED
+sLAOgKmjwGMNA8BUakugKT5WaVIYzX8DZffejStVnvQuXaoGRvuOxOjPC4AvrdDCHBMAY3QYzGk2
+CKR0a52qlD5AVLnyhEAzbTpGAkDDEGDa9tbUymBeAPxRnZ9jX+DQ4SRksHwGYGnZNB0hz1ilVQET
+awFWOlOwTNZgiI2+moGtHdu5r7X6ZsShA0JEADcAJBH2MT/5/Ys9ySN5AOIevcBWgV7AmHnnFEKr
+SDhZ8ybBVHSFDXRANUoAvAc1PZmMDDbi6wWITaROBm9sgycSYUC9SV+KdfXjlsIN42vl/jVQWoJr
+e13JQHbPFvbKHOiFbZduMiT3V2dC1MPlAJEqAH5tMW9F0hfVcAMzw0n21O4KKx372CXw0/v0hoA2
+MATqwFVGR/gEdNwVcq1Mx342y2pOvaEL3hARYgCWmKnvCHklu9QQ8OwIW/g3PdSDvZ4q0NkJxqsD
+fCmGFtgAKAIdodKyM1gOdMrgSqIAeCe0TlBPnGfuGLFiP3t80DMJotpPqWOTenvc9NgdJhPXhm6t
+lUqyT0ikszn5Gq90K6g9x0A7ctQ6elF/vQpMS6O/KAAkEZ4RVYIkHFTi5y6CpmnQmhN/KNxFf24N
+IBoCP6TVeoXv2YAAMvhHHAD4D7IcXVfolsFhO0HREChC/V8dbGk7fA8y+ZPWDdNM/lT4SWPhY8y8
+Bb38DvTSmKsTZI4tuST4TwsYL59bblGMAkF2hoKWQ5LorEmXXjnuAEdhkT8kZWV7ullCqoEFBAZF
+Jexo27W2ymR1dWvSYxvkridQIe4JruUhkUl97u9BMsBRu3qgdU/WUdq4th++m46Ho7AMVlLHAN8V
+nJ0BY1lNcgjCABCq5RIBDa84uRe4uozcOqAaJwDeYkh2DjHqk9aXkXVEpthmTSpDgFlF0L9VxpP+
+g6TU+igAuEAZcBrq//LqDrXKOJvrmNZkwownPhs1P+TvNRMg+AyTlOdUcVXopkCcpsAEzg9KBvxo
+zco9ZKKj5CjjfqUSBa0wIASEAQpGX8jTlWwTLsoeqxJ1TGMwcjZ2DAZgR4WuMqH1SNQPaUYOAAOQ
+PsqMAVslsdM61n3HvwIMAEbY5Ec+KNRqAAAAAElFTkSuQmCC" 
+alt="HTML5" width="64" height="64"/>
+
+<h2>Basic R Websockets Example</h2>
+<div id="input">
+  <br />
+  <table><tr>
+  <td>
+  <input type="text" id="intext" value="11" size="20" maxlength="20"/>
+  </td><td>
+  <input type=button id="send" value="SET" onclick="hello();"/>
+  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
+  </td>
+  <td id="statustd">
+  <div id="wsdi_status"> Connection not initialized </div>
+  </td></tr></table>
+</div>
+<hr />
+<div id="istat"></div>
+<br />
+<div id="output"></div>
+<div style='width:90%' id='blurb'>
+<p />
+The 'websockets' package is a simple and portable websockets implementation 
+for the R language, based on the C 'libwebsockets' library.
+The websockets package is especially well-suited to 
+lightweight Javascript/R integration. 
+<p />
+HTML 5 websockets is a modern lightweight socket-like communication protocol.
+Although still in development, HTML 5 websockets is widely supported:
+all recent browsers support it and
+there are many high-quality langauge implementations.
+HTML 5 websockets let Javascript and other scripts embedded within web
+pages directly interact with R, bypassing traditional middleware layers
+like .NET, Java, and other web services, normally used for such interaction.
+<p />
+This simple example illustrates a few features of websockets. For a
+fancier demo that uses JSON, run the following in your R session:
+<pre>
+demo('json', package='websockets')
+</pre>
+The features illustrated in this example are:
+<ul>
+<li> Each connected client has a data 'cookie' assigned to it which we
+use here to store a client ID number. Try opening multiple browser pages
+to http://localhost:7681 to see multiple connected clients.
+<li> The R websocket service calls back to user-defined R functions when
+various websocket events occur for each client. Here we use the 'establish'
+callback function to assign and display the client ID on start up,
+the 'receive' function to respond to input from each client, and
+the 'broadcast' function to update the clients with a running counter.
+<li> Press the 'SET' button to send the value in the text box to R.
+The R websocket server receives the message and sets the counter for all
+connected clients.
+<li> Although not its primary function, the package can serve HTTP web pages like this one.
+</ul>
+</div>
+
+<script>
+String.prototype.startsWith = function(str){return (this.indexOf(str) === 0);}
+
+var socket = new WebSocket("ws://localhost:7681", "R");
+try {
+  socket.onopen = function() {
+    document.getElementById("wsdi_status").textContent =
+      " websocket connection opened ";
+    document.getElementById("statustd").style.backgroundColor = "#40ff40";
+  } 
+
+  socket.onmessage = function got_packet(msg) {
+    if(msg.data.startsWith("Connection")) {
+      document.getElementById("istat").textContent = msg.data;
+    } 
+    else document.getElementById("output").textContent = msg.data;
+  } 
+
+  socket.onclose = function(){
+    document.getElementById("wsdi_status").textContent =
+      " websocket connection CLOSED ";
+    document.getElementById("statustd").style.backgroundColor = "#ff4040";
+  }
+
+}
+catch(ex) {document.getElementById("output").textContent = "Error: " + ex;}
+
+function hello() {
+  socket.send(document.getElementById("intext").value);
+}
+
+</script>
+
+<br /><br />
+websockets package Copyright (C) 2011 by Bryan W. Lewis, &lt;blewis@illposed.net&gt;, package licensed under GNU GPL v2.
+<br />
+libwebsockets Copyright (C) 2010 by Andy Green &lt;andy@warmcat.com&gt;, licensed under GNU LGPL v2.1.
+<br />
+BSD poll library Copyright (C) 1995-2002 by Brian M. Clapper &lt;bmc@clapper.org&gt;, licensed under BSD license.
+</body>
+</html>

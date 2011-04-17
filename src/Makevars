@@ -1,0 +1,2 @@
+PKG_CFLAGS=
+PKG_LIBS=-lz

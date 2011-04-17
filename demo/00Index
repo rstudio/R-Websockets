@@ -1,0 +1,2 @@
+json	A fancier Websocket demo that uses JSON and flotr.
+websockets 	A self-contained Websocket example (see help('websockets')).
