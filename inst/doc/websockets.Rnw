@@ -251,7 +251,7 @@ gc()
 \end{lstlisting}
 A new context may be created any time after this point. We are conisdering
 forcing the garbage collector to run automatically when a context
-is deleted, but are not sure about the implications for doing that yet.
+is deleted, but are not sure about the implications of doing that yet.
 
 \section{Tricks and miscellaneous notes}
 We present a few more advanced and other miscellaneous notes in this
