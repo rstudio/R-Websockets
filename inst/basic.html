@@ -57,18 +57,25 @@ alt="HTML5" width="64" height="64"/>
 <div id="output"></div>
 <div style='width:90%' id='blurb'>
 <p />
-The 'websockets' package is a simple and portable websockets implementation 
-for the R language, based on the C 'libwebsockets' library.
-The websockets package is especially well-suited to 
-lightweight Javascript/R integration. 
+The websockets package is an HTML 5 Websocket implementation for the R
+language, based on the libwebsockets library written by Andy Green.
+The websockets package is especially well-suited to lightweight
+interaction between R and web scripting languages like Javascript.
+Multiple simultaneous websocket connections are supported.
 <p />
-HTML 5 websockets is a modern lightweight socket-like communication protocol.
-Although still in development, HTML 5 websockets is widely supported:
-all recent browsers support it and
-there are many high-quality langauge implementations.
-HTML 5 websockets let Javascript and other scripts embedded within web
-pages directly interact with R, bypassing traditional middleware layers
-like .NET, Java, and other web services, normally used for such interaction.
+By 'lightweight' we mean that the library has few external dependencies and
+is easily portable. More significantly, websockets lets Javascript and
+other scripts embedded in web pages directly interact with R, bypassing
+traditional middleware layers like .NET, Java, and web servers normally used
+for such interaction.
+<p />
+The HTML 5 Websocket API is a modern socket-like communication protocol for the
+web.  Note that the HTML 5 Websocket API is still under development and may
+change.  Some browsers may not enable Websockets by default (including recent
+versions of Firefox), but there are usually simple methods to enable the API.
+Despite its developmental status, the API is presently widely supported: most
+recent browsers support it and there are many available langauge
+implementations.
 <p />
 This simple example illustrates a few features of websockets. For a
 fancier demo that uses JSON, run the following in your R session:
