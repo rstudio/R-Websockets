@@ -176,7 +176,9 @@ libwebsocket_client_connect (struct libwebsocket_context *context,
   bzero (&server_addr.sin_zero, 8);
 
   /* Disable Nagle */
+#ifndef Darwin
   setsockopt (wsi->sock, SOL_TCP, TCP_NODELAY, &opt, sizeof (opt));
+#endif
 
   if (connect (wsi->sock, (struct sockaddr *) &server_addr,
                sizeof (struct sockaddr)) == -1)

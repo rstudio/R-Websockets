@@ -768,7 +768,9 @@ libwebsocket_service_fd (struct libwebsocket_context *context,
 
       /* Disable Nagle */
       opt = 1;
+#ifndef Darwin
       setsockopt (accept_fd, SOL_TCP, TCP_NODELAY, &opt, sizeof (opt));
+#endif
 
       if (context->fds_count >= MAX_CLIENTS)
         {
@@ -2552,7 +2554,9 @@ libwebsocket_create_context (int port, const char *interf,
 
       /* Disable Nagle */
       opt = 1;
+#ifndef Darwin
       setsockopt (sockfd, SOL_TCP, TCP_NODELAY, &opt, sizeof (opt));
+#endif
 
       bzero ((char *) &serv_addr, sizeof (serv_addr));
       serv_addr.sin_family = AF_INET;
@@ -2739,7 +2743,9 @@ libwebsockets_fork_service_loop (struct libwebsocket_context *context)
     }
 
   /* we want a SIGHUP when our parent goes down */
+#ifndef Darwin
   prctl (PR_SET_PDEATHSIG, SIGHUP);
+#endif
 
   /* in this forked process, sit and service websocket connections */
 

@@ -46,7 +46,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #ifndef LWS_NO_FORK
+#ifndef Darwin
 #include <sys/prctl.h>
+#endif
 #endif
 #include <netinet/in.h>
 #include <netinet/tcp.h>

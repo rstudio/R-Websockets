@@ -1,2 +1,2 @@
-PKG_CFLAGS=-DWin32 -DWIN32 -I. -Iwin32helpers -I$(R_HOME)/include
+PKG_CFLAGS=-DLWS_NO_FORK -DWin32 -DWIN32 -I. -Iwin32helpers -I$(R_HOME)/include
 PKG_LIBS=$(R_HOME)/bin$(R_ARCH_BIN)/Rzlib.dll  -lWs2_32 -lMswsock 
