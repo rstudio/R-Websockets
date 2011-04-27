@@ -1,7 +1,7 @@
 Package: websockets
 Type: Package
 Title: HTML 5 Websocket Interface for R
-Version: 1.0.0
+Version: 1.0.1
 Date: 2011-04-16
 Author: B. W. Lewis <blewis@illposed.net>
 Maintainer: B. W. Lewis <blewis@illposed.net>

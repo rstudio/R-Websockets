@@ -205,19 +205,16 @@ context_finalize (SEXP C)
 }
 
 
-// XXX add more options
+// XXX add more options (ssl, select interface, ...)
 SEXP createContext(SEXP env, SEXP PORT)
 {
   struct libwebsocket_context *context;
   SEXP ans;
   int port = INTEGER(PORT)[0];
-  int use_ssl = 0;
   int opts = 0;
   const char *cert_path = 0;
   const char *key_path = 0;
-  char interface_name[128] = "";
   const char * interface = 0;
-  unsigned int oldus = 0;
   pkg_env = env;
   opts = LWS_SERVER_OPTION_DEFEAT_CLIENT_MASK;
   context = libwebsocket_create_context(port, interface, protocols,

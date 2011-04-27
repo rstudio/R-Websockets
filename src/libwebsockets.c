@@ -283,7 +283,11 @@ just_kill_connection:
 
   context->protocols[0].callback (context, wsi,
                                   LWS_CALLBACK_DEL_POLL_FD,
+#ifdef Win64
+                                  (void *) (long long) wsi->sock, NULL, 0);
+#else
                                   (void *) (long) wsi->sock, NULL, 0);
+#endif
 
   wsi->state = WSI_STATE_DEAD_SOCKET;
 
@@ -386,20 +390,26 @@ void
 libwebsockets_get_peer_addresses (int fd, char *name, int name_len,
                                   char *rip, int rip_len)
 {
+#ifdef Win32
+  int len;
+#else
   unsigned int len;
+#endif
   struct sockaddr_in sin;
   struct hostent *host;
   struct hostent *host1;
   char ip[128];
   unsigned char *p;
   int n;
+#ifdef AF_LOCAL
   struct sockaddr_un *un;
+#endif
 
   rip[0] = '\0';
   name[0] = '\0';
 
   len = sizeof sin;
-  if (getpeername (fd, (struct sockaddr *) &sin, &len) < 0)
+  if(getpeername (fd, (struct sockaddr *) &sin, &len) < 0)
     {
       perror ("getpeername");
       return;
@@ -640,7 +650,11 @@ user_service:
   /* external POLL support via protocol 0 */
   context->protocols[0].callback (context, wsi,
                                   LWS_CALLBACK_CLEAR_MODE_POLL_FD,
+#ifdef Win64
+                                  (void *) (long long)wsi->sock, NULL, POLLOUT);
+#else
                                   (void *) (long) wsi->sock, NULL, POLLOUT);
+#endif
 
   if (wsi->mode == LWS_CONNMODE_WS_CLIENT)
     n = LWS_CALLBACK_CLIENT_WRITEABLE;
@@ -669,15 +683,24 @@ int
 libwebsocket_service_fd (struct libwebsocket_context *context,
                          struct pollfd *pollfd)
 {
+#ifdef Win32
+  char buf[LWS_SEND_BUFFER_PRE_PADDING + 1 + MAX_BROADCAST_PAYLOAD +
+                    LWS_SEND_BUFFER_POST_PADDING];
+#else
   unsigned char buf[LWS_SEND_BUFFER_PRE_PADDING + 1 + MAX_BROADCAST_PAYLOAD +
                     LWS_SEND_BUFFER_POST_PADDING];
+#endif
   struct libwebsocket *wsi;
   struct libwebsocket *new_wsi;
   int n;
   int m;
   size_t len;
   int accept_fd;
+#ifdef Win32
+  int clilen;
+#else
   unsigned int clilen;
+#endif
   struct sockaddr_in cli_addr;
   struct timeval tv;
   static const char magic_websocket_guid[] =
@@ -769,7 +792,11 @@ libwebsocket_service_fd (struct libwebsocket_context *context,
       /* Disable Nagle */
       opt = 1;
 #ifndef Darwin
+#ifdef Win32
+      setsockopt (accept_fd,SOL_TCP,TCP_NODELAY,(const char *)&opt,sizeof(opt));
+#else
       setsockopt (accept_fd, SOL_TCP, TCP_NODELAY, &opt, sizeof (opt));
+#endif
 #endif
 
       if (context->fds_count >= MAX_CLIENTS)
@@ -791,8 +818,13 @@ libwebsocket_service_fd (struct libwebsocket_context *context,
 
       if ((context->protocols[0].callback) (context, wsi,
                                             LWS_CALLBACK_FILTER_NETWORK_CONNECTION,
+#ifdef Win64
+                                            (void *) (long long)accept_fd,
+					    NULL, 0))
+#else
                                             (void *) (long) accept_fd, NULL,
                                             0))
+#endif
         {
 //          fprintf (stderr, "Callback denied network connection\n");
 #ifdef WIN32
@@ -906,7 +938,11 @@ libwebsocket_service_fd (struct libwebsocket_context *context,
       /* external POLL support via protocol 0 */
       context->protocols[0].callback (context, new_wsi,
                                       LWS_CALLBACK_ADD_POLL_FD,
+#ifdef Win64
+                                      (void *) (long long) accept_fd, NULL,
+#else
                                       (void *) (long) accept_fd, NULL,
+#endif
                                       POLLIN);
 
       break;
@@ -961,8 +997,13 @@ libwebsocket_service_fd (struct libwebsocket_context *context,
       /* external POLL support via protocol 0 */
       context->protocols[0].callback (context, new_wsi,
                                       LWS_CALLBACK_ADD_POLL_FD,
+#ifdef Win64
+                                      (void *) (long long) accept_fd, NULL,
+                                      POLLIN);
+#else
                                       (void *) (long) accept_fd, NULL,
                                       POLLIN);
+#endif
 
       break;
 
@@ -1105,8 +1146,14 @@ libwebsocket_service_fd (struct libwebsocket_context *context,
 
           if (SSL_connect (wsi->ssl) <= 0)
             {
+#ifdef Win32
+              fprintf (stderr, "SSL connect error %s\n",
+                       (const char *)ERR_error_string (ERR_get_error (),
+			       ssl_err_buf));
+#else
               fprintf (stderr, "SSL connect error %s\n",
                        ERR_error_string (ERR_get_error (), ssl_err_buf));
+#endif
               libwebsocket_close_and_free_session (context, wsi,
                                                    LWS_CLOSE_STATUS_NOSTATUS);
               return 1;
@@ -1346,7 +1393,11 @@ libwebsocket_service_fd (struct libwebsocket_context *context,
       strcpy ((char *) buf, wsi->key_b64);
       strcpy ((char *) &buf[strlen ((char *) buf)], magic_websocket_guid);
 
+#ifdef Win32
+      SHA1 ((const unsigned char *)buf, strlen ((const char *) buf), (unsigned char *) hash);
+#else
       SHA1 (buf, strlen ((char *) buf), (unsigned char *) hash);
+#endif
 
       lws_b64_encode_string (hash, 20,
                              wsi->initial_handshake_hash_base64,
@@ -1731,7 +1782,11 @@ libwebsocket_service_fd (struct libwebsocket_context *context,
           strcpy (p, wsi->utf8_token[WSI_TOKEN_NONCE].token);
           p += wsi->utf8_token[WSI_TOKEN_NONCE].token_len;
           strcpy (p, magic_websocket_04_masking_guid);
+#ifdef Win32
+          SHA1 ((const unsigned char *)buf, strlen ((const char *) buf), wsi->masking_key_04);
+#else
           SHA1 (buf, strlen ((char *) buf), wsi->masking_key_04);
+#endif
         }
     accept_ok:
 
@@ -2028,7 +2083,11 @@ libwebsocket_callback_on_writable (struct libwebsocket_context *context,
   /* external POLL support via protocol 0 */
   context->protocols[0].callback (context, wsi,
                                   LWS_CALLBACK_SET_MODE_POLL_FD,
+#ifdef Win64
+                                  (void *) (long long)wsi->sock, NULL, POLLOUT);
+#else
                                   (void *) (long) wsi->sock, NULL, POLLOUT);
+#endif
 
   return 1;
 }
@@ -2137,12 +2196,20 @@ libwebsocket_rx_flow_control (struct libwebsocket *wsi, int enable)
     /* external POLL support via protocol 0 */
     context->protocols[0].callback (context, wsi,
                                     LWS_CALLBACK_SET_MODE_POLL_FD,
+#ifdef Win64
+                                    (void *) (long long)wsi->sock, NULL,POLLIN);
+#else
                                     (void *) (long) wsi->sock, NULL, POLLIN);
+#endif
   else
     /* external POLL support via protocol 0 */
     context->protocols[0].callback (context, wsi,
                                     LWS_CALLBACK_CLEAR_MODE_POLL_FD,
+#ifdef Win64
+                                    (void *) (long long)wsi->sock, NULL,POLLIN);
+#else
                                     (void *) (long) wsi->sock, NULL, POLLIN);
+#endif
 
 
   fprintf (stderr, "libwebsocket_callback_on_writable "
@@ -2168,10 +2235,14 @@ libwebsocket_canonical_hostname (struct libwebsocket_context *context)
 }
 
 
+#ifndef Win32
 static void
 sigpipe_handler (int x)
 {
+// Ignore sigpipe
+  return;
 }
+#endif
 
 #ifdef LWS_OPENSSL_SUPPORT
 static int
@@ -2549,13 +2620,21 @@ libwebsocket_create_context (int port, const char *interf,
         }
 
       /* allow us to restart even if old sockets in TIME_WAIT */
-      setsockopt (sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof (opt));
+#ifdef Win32
+      setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,(const char *)&opt,sizeof(opt));
+#else
+      setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof (opt));
+#endif
 
 
       /* Disable Nagle */
       opt = 1;
 #ifndef Darwin
+#ifdef Win32
+      setsockopt (sockfd,SOL_TCP,TCP_NODELAY,(const char *)&opt,sizeof(opt));
+#else
       setsockopt (sockfd, SOL_TCP, TCP_NODELAY, &opt, sizeof (opt));
+#endif
 #endif
 
       bzero ((char *) &serv_addr, sizeof (serv_addr));
@@ -2591,7 +2670,11 @@ libwebsocket_create_context (int port, const char *interf,
       /* external POLL support via protocol 0 */
       context->protocols[0].callback (context, wsi,
                                       LWS_CALLBACK_ADD_POLL_FD,
+#ifdef Win64
+                                      (void *) (long long)sockfd, NULL,POLLIN);
+#else
                                       (void *) (long) sockfd, NULL, POLLIN);
+#endif
 
     }
 
@@ -2624,7 +2707,11 @@ libwebsocket_create_context (int port, const char *interf,
         }
 
       /* allow us to restart even if old sockets in TIME_WAIT */
-      setsockopt (fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof (opt));
+#ifdef Win32
+      setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,(const char *)&opt,sizeof(opt));
+#else
+      setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof (opt));
+#endif
 
       bzero ((char *) &serv_addr, sizeof (serv_addr));
       serv_addr.sin_family = AF_INET;
@@ -2640,7 +2727,11 @@ libwebsocket_create_context (int port, const char *interf,
         }
 
       slen = sizeof cli_addr;
+#ifdef Win32
+      n = getsockname (fd, (struct sockaddr *) &cli_addr, (int *)&slen);
+#else
       n = getsockname (fd, (struct sockaddr *) &cli_addr, &slen);
+#endif
       if (n < 0)
         {
           fprintf (stderr, "getsockname failed\n");
@@ -2675,7 +2766,11 @@ libwebsocket_create_context (int port, const char *interf,
       /* external POLL support via protocol 0 */
       context->protocols[0].callback (context, wsi,
                                       LWS_CALLBACK_ADD_POLL_FD,
+#ifdef Win64
+                                      (void *) (long long) fd, NULL, POLLIN);
+#else
                                       (void *) (long) fd, NULL, POLLIN);
+#endif
     }
 
   return context;
@@ -2862,7 +2957,11 @@ libwebsockets_broadcast (const struct libwebsocket_protocols *protocol,
    * set up when the websocket server initializes
    */
 
+#ifdef Win32
+  n = send (protocol->broadcast_socket_user_fd, (const char *)buf, len, MSG_NOSIGNAL);
+#else
   n = send (protocol->broadcast_socket_user_fd, buf, len, MSG_NOSIGNAL);
+#endif
 
   return n;
 }

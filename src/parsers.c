@@ -1118,7 +1118,11 @@ lws_issue_raw (struct libwebsocket *wsi, unsigned char *buf, size_t len)
   else
     {
 #endif
+#ifdef Win32
+      n = send (wsi->sock, (const char *)buf, len, MSG_NOSIGNAL);
+#else
       n = send (wsi->sock, buf, len, MSG_NOSIGNAL);
+#endif
       if (n < 0)
         {
           fprintf (stderr, "ERROR writing to socket\n");

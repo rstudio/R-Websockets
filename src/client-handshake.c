@@ -177,7 +177,11 @@ libwebsocket_client_connect (struct libwebsocket_context *context,
 
   /* Disable Nagle */
 #ifndef Darwin
+#ifdef Win32
+  setsockopt (wsi->sock, SOL_TCP, TCP_NODELAY,(const char *)&opt, sizeof (opt));
+#else
   setsockopt (wsi->sock, SOL_TCP, TCP_NODELAY, &opt, sizeof (opt));
+#endif
 #endif
 
   if (connect (wsi->sock, (struct sockaddr *) &server_addr,
@@ -200,7 +204,11 @@ libwebsocket_client_connect (struct libwebsocket_context *context,
   /* external POLL support via protocol 0 */
   context->protocols[0].callback (context, wsi,
                                   LWS_CALLBACK_ADD_POLL_FD,
+#ifdef Win64
+                                  (void *) (long long) wsi->sock, NULL, POLLIN);
+#else
                                   (void *) (long) wsi->sock, NULL, POLLIN);
+#endif
 
   /* we are connected to server, or proxy */
 

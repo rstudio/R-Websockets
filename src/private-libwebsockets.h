@@ -36,6 +36,7 @@
 #ifdef WIN32
 
 #include <time.h>
+#include <sys/time.h>
 #include <ws2tcpip.h>
 #include <Winsock2.h>
 #include <windows.h>

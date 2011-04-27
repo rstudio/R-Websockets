@@ -7,8 +7,6 @@
 #define DEBUG 1
 #endif
 
-#pragma warning(disable : 4996)
-
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 
 #define MSG_NOSIGNAL 0
@@ -21,7 +19,9 @@
 
 /* override configure because we are not using Makefiles */
 
+#ifndef LWS_NO_FORK
 #define LWS_NO_FORK
+#endif
 #define DATADIR "."
 
 #endif

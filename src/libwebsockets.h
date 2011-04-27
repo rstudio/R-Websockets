@@ -30,6 +30,7 @@
 #include <ws2tcpip.h>
 #include <Winsock2.h>
 #include "websock-w32.h"
+#include "win32helpers/poll.h"
 
 #ifdef __cplusplus
 extern "C" {
