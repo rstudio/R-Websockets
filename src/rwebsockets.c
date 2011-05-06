@@ -1,4 +1,3 @@
-//R CMD SHLIB rwebsocket.c libwebsockets.a -lz
 #include <fcntl.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -9,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "private-libwebsockets.h"
 #include "libwebsockets.h"
 
 #include <R.h>
@@ -23,8 +23,6 @@ enum protocols {
   COUNT
 };
 
-SEXP pkg_env;    // An environment for storing R callback functions
-
 // This protocol is not really needed, but can be convenient for
 // self-contained applications.
 static int
@@ -37,7 +35,7 @@ callback_http(struct libwebsocket_context *context,
   SEXP PAGE;
   switch(reason) {
     case LWS_CALLBACK_HTTP:
-      PAGE = findVar(install("webpage"), pkg_env);
+      PAGE = findVar(install("webpage"), context->renv);
       if(PAGE == R_UnboundValue) break;
       page = CHAR(STRING_ELT(PAGE,0));
       if(libwebsockets_serve_http_file(wsi, page, "text/html"))
@@ -50,13 +48,14 @@ callback_http(struct libwebsocket_context *context,
 }
 
 void
-do_callback(struct libwebsocket *wsi, const char *fname,
+do_callback(struct libwebsocket_context *context,
+            struct libwebsocket *wsi, const char *fname,
             void *in, size_t len, void *user)
 {
   void *p;
   SEXP fun, R_fcall = R_NilValue, data, WSI, COOKIE;
-  fun = findVar(install(fname), pkg_env);
-//  fun = findFun(install(fname), pkg_env);
+  fun = findVar(install(fname), context->renv);
+//  fun = findFun(install(fname), (SEXP)context->env);
 // Would be nice if findVar1 were in the standard R api...
 //  if(fun == R_UnboundValue || TYPEOF(fun) != FUNSXP)
   if(fun == R_UnboundValue)
@@ -74,7 +73,7 @@ do_callback(struct libwebsocket *wsi, const char *fname,
   SETCADR(R_fcall, data);
   SETCADDR(R_fcall, WSI);
   SETCADDDR(R_fcall, COOKIE);
-  eval(R_fcall, pkg_env);
+  eval(R_fcall, context->renv);
   UNPROTECT(2);
 }
 
@@ -87,16 +86,16 @@ callback_R(struct libwebsocket_context *context,
 {
   switch (reason) {
     case LWS_CALLBACK_CLOSED:
-      do_callback(wsi, "closed", in, len, user);
+      do_callback(context, wsi, "closed", in, len, user);
     break;
     case LWS_CALLBACK_ESTABLISHED:
-      do_callback(wsi, "established", in, len, user);
+      do_callback(context, wsi, "established", in, len, user);
     break;
     case LWS_CALLBACK_BROADCAST:
-      do_callback(wsi, "broadcast", in, len, user);
+      do_callback(context, wsi, "broadcast", in, len, user);
     break;
     case LWS_CALLBACK_RECEIVE:
-      do_callback(wsi, "receive", in, len, user);
+      do_callback(context, wsi, "receive", in, len, user);
     break;
     default:
     break;
@@ -215,11 +214,12 @@ SEXP createContext(SEXP env, SEXP PORT)
   const char *cert_path = 0;
   const char *key_path = 0;
   const char * interface = 0;
-  pkg_env = env;
   opts = LWS_SERVER_OPTION_DEFEAT_CLIENT_MASK;
   context = libwebsocket_create_context(port, interface, protocols,
               libwebsocket_internal_extensions,
               cert_path, key_path, -1, -1, opts);
+  if(!context) return (R_NilValue);
+  context->renv = env;
   ans = R_MakeExternalPtr((void *)context, R_NilValue, R_NilValue);
   R_RegisterCFinalizer(ans, context_finalize);
   return (ans);

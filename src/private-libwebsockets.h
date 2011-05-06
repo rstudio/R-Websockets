@@ -72,6 +72,11 @@
 
 #include "libwebsockets.h"
 
+#include <R.h>
+#define USE_RINTERNALS
+#include <Rinternals.h>
+
+
 #if 0
 #define DEBUG
 #endif
@@ -211,6 +216,10 @@ struct libwebsocket_context {
 	struct libwebsocket_protocols *protocols;
 	int count_protocols;
 	struct libwebsocket_extension *extensions;
+/* We added this extra pointer to help track a corresponding R environment:
+ * (R websockets package)
+ */
+        SEXP renv;
 };
 
 

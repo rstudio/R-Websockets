@@ -1490,7 +1490,7 @@ send_raw:
         /* no we could add more */
         continue;
 
-      fprintf (stderr, "choked\n");
+//      fprintf (stderr, "choked\n");
 
       /*
        * Yes, he's choked.  Don't spill the rest now get a callback
