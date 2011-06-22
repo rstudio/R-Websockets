@@ -167,7 +167,7 @@ SEXP wsockwrite(SEXP WSI, SEXP DATA)
   return ScalarInteger(n);
 }
 
-// Broadcast to protocol
+// "Broadcast" protocol
 SEXP wsockbcast(SEXP DATA)
 {
   unsigned char *p, *d;
@@ -179,7 +179,7 @@ SEXP wsockbcast(SEXP DATA)
                                 LWS_SEND_BUFFER_POST_PADDING, sizeof(char));
   p = buf + LWS_SEND_BUFFER_PRE_PADDING;
   memcpy(p, d, n);
-  n = libwebsockets_broadcast(&protocols[PROTOCOL_R],buf,n);
+  n = libwebsockets_broadcast(&protocols[PROTOCOL_R],p,n);
   free(buf);
   if(n<0) error("ERROR writing to socket\n");
   return ScalarInteger(n);
