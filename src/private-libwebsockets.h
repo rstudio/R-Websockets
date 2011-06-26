@@ -40,7 +40,6 @@
 #include <ws2tcpip.h>
 #include <Winsock2.h>
 #include <windows.h>
-//#include "poll.h"
 /* winsock doesn't feature poll(), so there is a version implemented
  * in terms of select() in mingw.c. The following definitions
  * are copied from linux man pages. A poll() macro is defined to

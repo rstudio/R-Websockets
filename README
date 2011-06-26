@@ -5,7 +5,3 @@ A simple, portable HTML 5 Websocket API implementation for R.
 websockets package Copyright (C) 2011 by Bryan W. Lewis, <blewis@illposed.net>, package licensed under GNU GPL v2.
 
 libwebsockets Copyright (C) 2010 by Andy Green <andy@warmcat.com>, licensed under GNU LGPL v2.1.
-
-This product includes software developed by Brian M. Clapper <bmc@clapper.org>.
-BSD poll library Copyright (C) 1995-2002 by Brian M. Clapper <bmc@clapper.org>, licensed under BSD license.
-
