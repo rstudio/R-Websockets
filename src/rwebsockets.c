@@ -213,9 +213,9 @@ SEXP createContext(SEXP env, SEXP PORT)
   int opts = 0;
   const char *cert_path = 0;
   const char *key_path = 0;
-  const char *leinterface = 0;
+  const char *theinterface = 0;
   opts = LWS_SERVER_OPTION_DEFEAT_CLIENT_MASK;
-  context = libwebsocket_create_context(port, leinterface, protocols,
+  context = libwebsocket_create_context(port, theinterface, protocols,
               libwebsocket_internal_extensions,
               cert_path, key_path, -1, -1, opts);
   if(!context) return (R_NilValue);
