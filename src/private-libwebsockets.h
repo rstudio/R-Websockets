@@ -92,11 +92,6 @@ struct pollfd {
 #define USE_RINTERNALS
 #include <Rinternals.h>
 
-
-#if 0
-#define DEBUG
-#endif
-
 #ifdef DEBUG
 #ifdef WIN32
 static

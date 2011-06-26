@@ -176,12 +176,12 @@ libwebsocket_client_connect (struct libwebsocket_context *context,
   bzero (&server_addr.sin_zero, 8);
 
   /* Disable Nagle */
-#ifndef Darwin
 #ifdef Win32
   setsockopt (wsi->sock, SOL_TCP, TCP_NODELAY,(const char *)&opt, sizeof (opt));
+#elif defined(Darwin)
+  setsockopt (wsi->sock, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof (opt));
 #else
   setsockopt (wsi->sock, SOL_TCP, TCP_NODELAY, &opt, sizeof (opt));
-#endif
 #endif
 
   if (connect (wsi->sock, (struct sockaddr *) &server_addr,

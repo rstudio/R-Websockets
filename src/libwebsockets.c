@@ -385,7 +385,6 @@ just_kill_connection:
     if (wsi->utf8_token[n].token)
       free (wsi->utf8_token[n].token);
 
-/*	fprintf(stderr, "closing fd=%d\n", wsi->sock); */
 
 #ifdef LWS_OPENSSL_SUPPORT
   if (wsi->ssl)
@@ -856,12 +855,12 @@ libwebsocket_service_fd (struct libwebsocket_context *context,
 
       /* Disable Nagle */
       opt = 1;
-#ifndef Darwin
 #ifdef Win32
       setsockopt (accept_fd,SOL_TCP,TCP_NODELAY,(const char *)&opt,sizeof(opt));
+#elif defined(Darwin)
+      setsockopt (accept_fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof (opt));
 #else
       setsockopt (accept_fd, SOL_TCP, TCP_NODELAY, &opt, sizeof (opt));
-#endif
 #endif
 
       if (context->fds_count >= MAX_CLIENTS)
@@ -1906,8 +1905,7 @@ libwebsocket_service_fd (struct libwebsocket_context *context,
       if (pollfd->revents & (POLLERR | POLLHUP))
         {
 
-          fprintf (stderr, "Session Socket %p (fd=%d) dead\n",
-                   (void *) wsi, pollfd->fd);
+          debug ("Session Socket %p (fd=%d) dead\n", (void *) wsi, pollfd->fd);
 
           libwebsocket_close_and_free_session (context, wsi,
                                                LWS_CLOSE_STATUS_NOSTATUS);
@@ -2694,12 +2692,12 @@ libwebsocket_create_context (int port, const char *interf,
 
       /* Disable Nagle */
       opt = 1;
-#ifndef Darwin
 #ifdef Win32
       setsockopt (sockfd,SOL_TCP,TCP_NODELAY,(const char *)&opt,sizeof(opt));
+#elif defined(Darwin)
+      setsockopt (sockfd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof (opt));
 #else
       setsockopt (sockfd, SOL_TCP, TCP_NODELAY, &opt, sizeof (opt));
-#endif
 #endif
 
       bzero ((char *) &serv_addr, sizeof (serv_addr));
@@ -2981,11 +2979,11 @@ libwebsockets_broadcast (const struct libwebsocket_protocols *protocol,
 
       for (n = 0; n < FD_HASHTABLE_MODULUS; n++)
         {
-
+          if(!context) return 0;
           for (m = 0; m < context->fd_hashtable[n].length; m++)
             {
-
               wsi = context->fd_hashtable[n].wsi[m];
+              if(!wsi) continue;
 
               if (wsi->mode != LWS_CONNMODE_WS_SERVING)
                 continue;
