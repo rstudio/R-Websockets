@@ -256,7 +256,10 @@ is deleted, but are not sure about the implications of doing that yet.
 We present a few more advanced and other miscellaneous notes in this
 section.
 \subsection{Binary data}
-It is possible to exchange binary data over websockets, and the default
+At the time of this writing (June, 2011), Javascript websocket clients
+do not support binary data.
+It is possible to exchange binary data with some websocket clients however,
+and the default
 I/O type on the R side of the library is the R {\tt raw} type. For
 convenience, R character variables are cast to {\tt raw} by the library
 automatically, but all other types require manual serialization to
