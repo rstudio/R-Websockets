@@ -1,1 +1,2 @@
+useDynLib(websockets)
 exportPattern("^[[:alpha:]]+")
