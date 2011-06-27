@@ -10,6 +10,7 @@
 
 #include "private-libwebsockets.h"
 #include "libwebsockets.h"
+#include "websockets.h"
 
 #include <R.h>
 #define USE_RINTERNALS

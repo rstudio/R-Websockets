@@ -18,12 +18,12 @@
 
 `.onLoad` <- function(libname, pkgname)
 {
-  library.dynam('websockets', pkgname, libname)
+#  library.dynam('websockets', pkgname, libname)
 }
 
 `.onUnload` <- function(libpath)
 {
-  library.dynam.unload('websockets', libpath)
+#  library.dynam.unload('websockets', libpath)
 }
 
 `websocket_write` <- function(DATA, WS)
