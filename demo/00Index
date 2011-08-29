@@ -1,4 +1,4 @@
-json	A Websocket demo that uses JSON and flotr and an external web site.
+json	A self-contained example that uses JSON and flotr.
 plotting  A self-contained example of R graphics output over websockets.
 websockets 	A self-contained basic websocket example.
 PerformanceAnalytics 	A self-contained basic websocket with embedded R plots.
