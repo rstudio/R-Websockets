@@ -19,7 +19,7 @@ f = function(DATA,WSI,COOKIE)
 }
 setCallback("receive",f, w)
 
-cat("\n\n------------------------------------------------------------------------------\n","Open a browser to http://illposed.net/rwebsockjson.html\n\n","The service will stop after five minutes or until <CTRL>+C is pressed\n","------------------------------------------------------------------------------\n")
+cat("\n\n------------------------------------------------------------------------------\n","Open a browser to http://localhost:7681\n\n","The service will stop after five minutes or until <CTRL>+C is pressed\n","------------------------------------------------------------------------------\n")
 startTime = proc.time()[3]
 while(proc.time()[3] - startTime < 300) {
   service(w)
