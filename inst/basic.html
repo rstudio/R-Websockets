@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>R/Websockets</title>
+  <title>R/WebSockets</title>
 </head>
 <style type="text/css" media="screen">
 .fright {
@@ -37,14 +37,14 @@ zco9ZKKj5CjjfqUSBa0wIASEAQpGX8jTlWwTLsoeqxJ1TGMwcjZ2DAZgR4WuMqH1SNQPaUYOAAOQ
 PsqMAVslsdM61n3HvwIMAEbY5Ec+KNRqAAAAAElFTkSuQmCC" 
 alt="HTML5" width="64" height="64"/>
 
-<h2>Basic R Websockets Example</h2>
+<h2>Basic R WebSockets Example</h2>
 <div id="input">
   <br />
   <table><tr>
   <td>
   <input type="text" id="intext" value="11" size="20" maxlength="20"/>
   </td><td>
-  <input type=button id="send" value="SET" onclick="hello();"/>
+  <input type=button id="send" value="SEND" onclick="hello();"/>
   &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;
   </td>
   <td id="statustd">
@@ -57,53 +57,43 @@ alt="HTML5" width="64" height="64"/>
 <div id="output"></div>
 <div style='width:90%' id='blurb'>
 <p />
-The websockets package is an HTML 5 Websocket implementation for the R
-language, based on the libwebsockets library written by Andy Green.
-The websockets package is especially well-suited to lightweight
-interaction between R and web scripting languages like Javascript.
-Multiple simultaneous websocket connections are supported.
+The websockets package is a native HTML 5 Websocket implementation for the R
+language. The package provides functions for setting up websocket servers and
+clients in R.  It's especially well-suited to lightweight interaction between R
+and web scripting languages like Javascript.  Multiple simultaneous websocket
+connections are supported.
 <p />
-By 'lightweight' we mean that the library has few external dependencies and
-is easily portable. More significantly, websockets lets Javascript and
-other scripts embedded in web pages directly interact with R, bypassing
-traditional middleware layers like .NET, Java, and web servers normally used
-for such interaction.
+The library has few external dependencies and is easily portable. More
+significantly, websockets lets Javascript and other scripts embedded in web
+pages directly interact with R, bypassing traditional middleware layers like
+.NET, Java, and web servers normally used for such interaction.
+Although not its primary function, the package can serve basic
+HTTP web pages like this one.
 <p />
 The HTML 5 Websocket API is a modern socket-like communication protocol for the
-web.  Note that the HTML 5 Websocket API is still under development and may
-change.  Some browsers may not enable Websockets by default (including recent
-versions of Firefox), but there are usually simple methods to enable the API.
-Despite its developmental status, the API is presently widely supported: most
-recent browsers support it and there are many available langauge
-implementations.
+web. It can be much more efficient than Ajax and other polling methods. Note that
+the HTML 5 Websocket API is still under development and may change.  Some
+browsers may not enable Websockets by default and/or have quirky
+implementations (especially versions of Firefox), but there are usually simple
+methods to enable the API.  Despite its developmental status, the API is
+presently widely supported: most recent browsers support it and there are many
+available langauge implementations.
 <p />
-This simple example illustrates a few features of websockets. For a
-fancier demo that uses JSON, run the following in your R session:
+This simple example illustrates a few features of websockets.
+To see other available demos, run the following in your R session:
 <pre>
-demo('json', package='websockets')
+demo(package='websockets')
 </pre>
-The features illustrated in this example are:
-<ul>
-<li> Each connected client has a data 'cookie' assigned to it which we
-use here to store a client ID number. Try opening multiple browser pages
-to http://localhost:7681 to see multiple connected clients.
-<li> The R websocket service calls back to user-defined R functions when
-various websocket events occur for each client. Here we use the 'establish'
-callback function to assign and display the client ID on start up,
-the 'receive' function to respond to input from each client, and
-the 'broadcast' function to update the clients with a running counter.
-<li> Press the 'SET' button to send the value in the text box to R.
-The R websocket server receives the message and sets the counter for all
-connected clients.
-<li> Although not its primary function, the package can serve HTTP web pages like this one.
 </ul>
 </div>
 
 <script>
 String.prototype.startsWith = function(str){return (this.indexOf(str) === 0);}
 
-var socket = new WebSocket("ws://localhost:7681", "R");
+var socket;
 try {
+  socket = new WebSocket("ws://localhost:7681", "chat");
+
   socket.onopen = function() {
     document.getElementById("wsdi_status").textContent =
       " websocket connection opened ";
@@ -134,8 +124,5 @@ function hello() {
 <br /><br />
 websockets package Copyright (C) 2011 by Bryan W. Lewis, &lt;blewis@illposed.net&gt;, package licensed under GNU GPL v2.
 <br />
-libwebsockets Copyright (C) 2010 by Andy Green &lt;andy@warmcat.com&gt;, licensed under GNU LGPL v2.1.
-<br />
-BSD poll library Copyright (C) 1995-2002 by Brian M. Clapper &lt;bmc@clapper.org&gt;, licensed under BSD license.
 </body>
 </html>
