@@ -72,6 +72,8 @@
   assign('static', webpage, envir=w)
   assign('server_socket', .SOCK_SERVE(port), envir=w)
   assign('client_sockets', c(), envir=w)
+  assign('client_wsinfo', c(), envir=w)
+  assign('receive', function(WS, DATA, COOKIE=NULL) {cat("Received data from client ",WS,":\n");cat(rawToChar(DATA),"\n")},envir=w)
   return(w)
 }
 
@@ -86,9 +88,20 @@
 {
   cs <- context$client_sockets
   cs <- cs[cs!=socket]
+  wsinfo <- context$client_wsinfo
+  wsinfo <- wsinfo[names(wsinfo)!=as.character(socket)]
   .SOCK_CLOSE(socket)
   assign('client_sockets',cs, envir=context)
+  assign('client_wsinfo',wsinfo, envir=context)
   invisible()
+}
+ 
+# Cleanly close a websocket connection
+`websocket_close` <- function(socket, context)
+{
+cat("websocket_close ",socket,"\n")
+# XXX unclean! add close protocol
+  .remove_client(socket, context)
 }
 
 `service` <- function(context, timeout=1000L)
@@ -101,10 +114,26 @@
       .add_client(j,context)
     }
     else{
+# Presently, program copies into a raw vector. Will also
+# soon support in place recv via external pointers.
       x <- .SOCK_RECV(j)
+      if(length(x)<1) {
+        websocket_close(j, context)
+        next
+      }
       h <- .parse_header(x)
       if(is.null(h)) {
 # Not a GET request, assume an incoming websocket payload.
+        if(!is.function(context$receive)){
+# Burn payload, nothing to do with it...
+          next
+        }
+        if(context$client_wsinfo[[as.character(j)]]["v"]<4) {
+          context$receive(WS=j, DATA=.v00_unframe(x), COOKIE=NULL)
+        }
+        else{
+          context$receive(WS=j, DATA=.unframe(x), COOKIE=NULL)
+        }
       }
       else if(is.null(h$Upgrade) || h$Upgrade != "websocket")
       {
@@ -114,6 +143,19 @@
       }
       else {
 # Try to establish a new websocket connection
+# 1. Stash this client's header, identifying websocket protocol version, etc.
+        context$client_wsinfo[[as.character(j)]] = h
+# 2. Respond depending on version:
+        v = 0
+        if(!is.null(h["Sec-WebSocket-Version"]))
+          if(as.numeric(h["Sec-WebSocket-Version"])>=4) v=4
+        context$client_wsinfo[[as.character(j)]]["v"] = v
+        if(v<4) .SOCK_SEND(j,.v00_resp_101(h))
+        else .SOCK_SEND(j,.v04_resp_101(h))
+        if(is.function(context$established))
+          context$established(WS=j,DATA=NULL,COOKIE=NULL)
+# COOKIE will go away in next version...it is useless in this version
+# just there for compatability with older versions...
       }
     }
   }

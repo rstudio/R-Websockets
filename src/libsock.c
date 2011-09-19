@@ -193,7 +193,7 @@ SEXP SOCK_SEND(SEXP S, SEXP DATA)
 
 SEXP SOCK_RECV(SEXP S, SEXP EXT)
 {
-  SEXP ans;
+  SEXP ans = R_NilValue;
   void *msg, *buf, *p;
   struct pollfd pfds;
   int h,j,k=0, s = INTEGER(S)[0];
@@ -229,5 +229,6 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT)
     free(msg);
     UNPROTECT(1);
   }
+  free(buf);
   return ans;
 }

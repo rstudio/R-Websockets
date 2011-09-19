@@ -1,5 +1,6 @@
 # Notes:
-# No extensions
+# - no extensions
+# - subprotocol is ignored for now
 
 # XXX fix this up
 .parse_header = function(msg)
@@ -46,7 +47,7 @@
 # Version 00 handshake
 .v00_resp_101 = function(cli_header)
 {
-  prot = cli_header["Sec-WebSocket-Protocol"]
+  prot = cli_header["Sec-WebSocket-Protocol"][[1]]
   origin = cli_header["Origin"]
   location = paste("ws://",cli_header["Host"],"/",sep="")
   key1 = cli_header["Sec-WebSocket-Key1"][[1]]
@@ -76,7 +77,7 @@
   GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
   key = paste(cli_header["Sec-WebSocket-Key"],GUID,sep="") 
   skey = base64encode(digest(charToRaw(key),algo='sha1',serialize=FALSE,raw=TRUE))
-  prot = cli_header["Sec-WebSocket-Protocol"]
+  prot = cli_header["Sec-WebSocket-Protocol"][[1]]
   resp = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
   resp = paste(resp,"Sec-WebSocket-Protocol: ",prot,"\r\n",sep="")
   paste(resp,"Sec-WebSocket-Accept: ",skey,"\r\n\r\n",sep="")
@@ -126,6 +127,7 @@
 # pointer will be supported soon (external pointer messages can be unmasked
 # in place).
 #
+# XXX does not handle fragmentation yet...add this.
 # The bit ordering is a bit hard to follow, sorry.
 .unframe = function(data)
 {
@@ -170,7 +172,8 @@
   else{
     stop("Only raw message types presently supported.")
   }
-  frame
+  if(length(data)<1 || is.null(frame$key)) return(c())
+  .MASK(data[frame$offset:length(data)],frame$key)
 }
 
 
