@@ -11,6 +11,7 @@
   if(!(is.character(msg) || is.raw(msg))) stop("Must be raw or character")
   n = ifelse(is.raw(msg),length(msg),nchar(msg))
   if(n<3) return(c())
+  if(is.raw(msg)) if(msg[1]==raw(1)) return(c())
   GET = ifelse(is.raw(msg),rawToChar(msg[1:3]), substr(msg,1,3))
   if(GET != "GET") return(c())
 
@@ -19,7 +20,7 @@
     cli_header$raw = msg
     msg = rawToChar(msg)
   }
-  if(nchar(msg)<1) return(cli_header)
+  if(n<1) return(cli_header)
   x = gsub("\r","",msg)
   x = strsplit(x,"\n")
   if(length(x)<1) return(cli_header)
@@ -40,6 +41,7 @@
       value = gsub("^ *", "", value)
       cli_header[key] = value
     }
+    else break;
   }
   cli_header
 }

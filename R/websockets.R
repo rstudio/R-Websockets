@@ -135,7 +135,7 @@ cat("websocket_close ",socket,"\n")
           context$receive(WS=j, DATA=.unframe(x), COOKIE=NULL)
         }
       }
-      else if(is.null(h$Upgrade) || h$Upgrade != "websocket")
+      else if(is.null(h$Upgrade))
       {
 # A static request, not a websocket
         context$static(j,h)
@@ -147,8 +147,8 @@ cat("websocket_close ",socket,"\n")
         context$client_wsinfo[[as.character(j)]] = h
 # 2. Respond depending on version:
         v = 0
-        if(!is.null(h["Sec-WebSocket-Version"]))
-          if(as.numeric(h["Sec-WebSocket-Version"])>=4) v=4
+        if(!is.null(h[["Sec-WebSocket-Version"]]))
+          if(as.numeric(h[["Sec-WebSocket-Version"]])>=4) v=4
         context$client_wsinfo[[as.character(j)]]["v"] = v
         if(v<4) .SOCK_SEND(j,.v00_resp_101(h))
         else .SOCK_SEND(j,.v04_resp_101(h))
