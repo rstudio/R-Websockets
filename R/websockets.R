@@ -1,33 +1,39 @@
-#
-# Copyright (c) 2011 by Bryan W. Lewis.
-#
-# This is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License as published
-# by the Free Software Foundation; either version 2 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307
-# USA
-
-`websocket_write` <- function(DATA, WS)
+`websocket_write` <- function(DATA, WS, CONTEXT=NULL)
 {
-  if(is.raw(DATA)) return(.Call('wsockwrite', WS, DATA, PACKAGE='websockets'))
-  if(is.character(DATA)) return(.Call('wsockwrite', WS, charToRaw(DATA), PACKAGE='websockets'))
-  stop('Only character and raw supported right now...')
+  if(is.null(CONTEXT)) {
+# Try to infer context for backwards compat. with older package versions.
+# Need to explicitly specify CONTEXT outside of callback situations.
+    frms = sys.frames()
+    if(length(frms)>2){
+      n = length(frms) - 2
+      l = ls(frms[[n]])
+      if(any(l=="context")) CONTEXT=frms[[n]]$context
+    }
+  }
+  v=4
+  if(is.null(CONTEXT)) warning("CONTEXT not indicated, assuming latest websocket version")
+  else {
+    if(exists("client_wsinfo",envir=CONTEXT) &&
+       any(names(CONTEXT$client_wsinfo)==as.character(WS))) {
+       v=CONTEXT$client_wsinfo[[as.character(WS)]]$v
+       if(is.null(v)) v=4
+    }
+  }
+  if(is.character(DATA)) DATA=charToRaw(DATA)
+  if(!is.raw(DATA)) stop("DATA must be character or raw")
+  if(v==4){
+    .SOCK_SEND(WS,.frame(length(DATA)))
+    .SOCK_SEND(WS, DATA)
+    return(invisible())
+  }
+  .SOCK_SEND(WS,raw(1))
+  .SOCK_SEND(WS,DATA)
+  .SOCK_SEND(WS,packBits(intToBits(255))[1])
 }
 
 `websocket_broadcast` <- function(DATA)
 {
-  if(is.raw(DATA)) return(.Call('wsockbcast', DATA, PACKAGE='websockets'))
-  if(is.character(DATA)) return(.Call('wsockbcast', charToRaw(DATA), PACKAGE='websockets'))
-  stop('Only character and raw supported right now...')
+  stop("XXX TODO")
 }
 
 `setCallback` <- function(id, f, envir)
@@ -60,6 +66,15 @@
   }
 }
 
+# Will eventually switch naming convention, for now this is a doppelganger.
+`create_context` <- function(
+      port=7681L,
+      webpage=static_page_service(
+        paste(system.file(package='websockets'), "basic.html",sep="//")))
+{
+  createContext(port, webpage)
+}
+
 # A context is an environment that stores data associated with a single
 # websocket server port, including information on all clients connected
 # to that server, and a function that serves up static web pages.
@@ -73,7 +88,7 @@
   assign('server_socket', .SOCK_SERVE(port), envir=w)
   assign('client_sockets', c(), envir=w)
   assign('client_wsinfo', c(), envir=w)
-  assign('receive', function(WS, DATA, COOKIE=NULL) {cat("Received data from client ",WS,":\n");cat(rawToChar(DATA),"\n")},envir=w)
+  assign('receive', function(WS, DATA, COOKIE=NULL) {cat("Received data from client ",WS,":\n");cat(rawToChar(DATA),"\n");websocket_write("HELLO",WS)},envir=w)
   return(w)
 }
 
@@ -93,6 +108,8 @@
   .SOCK_CLOSE(socket)
   assign('client_sockets',cs, envir=context)
   assign('client_wsinfo',wsinfo, envir=context)
+  if(length(wsinfo)>0 && exists("closed"))
+    context$closed(WS, DATA=NULL, COOKIE=NULL)
   invisible()
 }
  
