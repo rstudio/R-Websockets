@@ -91,6 +91,36 @@ recv_finalize (SEXP M)
   free((void *)R_ExternalPtrAddr(M));
 }
 
+/* in-place mask/unmask */
+void
+mask (int len, char *msg, char *key)
+{
+  int j,k;
+  for(j=0;j<len;++j){
+    k = j % 4;
+    msg[j] = msg[j] ^ key[k];
+  }
+}
+
+/* XXX
+ * The present MASK function makes a copy of the data into a new raw vector.
+ * A future version will allow in-place masking using an external pointer.
+ */
+SEXP MASK (SEXP DATA, SEXP KEY)
+{
+  SEXP ans = R_NilValue;
+  int len = length(DATA);
+  char *key = (char *)RAW(KEY);
+  char *msg = (char *)malloc(len);
+  memcpy((void *)msg, (void *)RAW(DATA), len);
+  mask(len, msg, key);
+  PROTECT(ans = allocVector(RAWSXP, len));
+  memcpy((void *)RAW(ans), msg, len);
+  UNPROTECT(1);
+  free(msg);
+  return ans;
+}
+
 SEXP SOCK_CLOSE (SEXP S)
 { 
   return ScalarInteger(close(INTEGER(S)[0]));
@@ -166,15 +196,15 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT)
   SEXP ans;
   void *msg, *buf, *p;
   struct pollfd pfds;
-  int j,k=0, s = INTEGER(S)[0];
+  int h,j,k=0, s = INTEGER(S)[0];
   int bufsize = MBUF;
   buf = (void *)malloc(RXBUF);
   msg = (void *)malloc(MBUF);
   p = msg;
   pfds.fd = s;
   pfds.events = POLLIN;
-  poll(&pfds, 1, 100);
-  while(pfds.revents = POLLIN) {
+  h = poll(&pfds, 1, 50);
+  while(h>0) {
     j = recv(s, buf, RXBUF, 0);
     if(j<1) break;
     if(k + j > bufsize) {
@@ -184,7 +214,7 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT)
     p = msg + k;
     memcpy(p, buf, j);
     k = k + j;
-    poll(&pfds, (nfds_t)1, 100);
+    h=poll(&pfds, (nfds_t)1, 50);
   }
   if(INTEGER(EXT)[0]) {
 /* return a pointer to the recv buffer */

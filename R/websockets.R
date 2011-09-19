@@ -26,7 +26,7 @@ parse_header = function(msg)
   cli_header
 }
 
-# Version 00 to 03 handshake
+# Version 00 handshake
 v00_resp_101 = function(cli_header)
 {
   prot = cli_header["Sec-WebSocket-Protocol"]
@@ -157,15 +157,15 @@ unframe = function(data)
 }
 
 
-xxx = function(s)
+.xxx = function(s)
 {
   cs = SOCK_ACCEPT(s)
 print(cs)
   x = rawToChar(SOCK_RECV(cs))
-  h = parse_header(x)
-cat(resp_101(h))
-  SOCK_SEND(cs,resp_101(h))
-  msg = charToRaw("HELLO")
-  SOCK_SEND(cs,c(frame(length(msg)),msg)) 
+#  h = parse_header(x)
+#cat(resp_101(h))
+#  SOCK_SEND(cs,resp_101(h))
+#  msg = charToRaw("HELLO")
+#  SOCK_SEND(cs,c(frame(length(msg)),msg)) 
 #  SOCK_CLOSE(cs)
 }
