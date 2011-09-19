@@ -67,7 +67,7 @@
 }
 
 # Will eventually switch naming convention, for now this is a doppelganger.
-`create_context` <- function(
+`create_server` <- function(
       port=7681L,
       webpage=static_page_service(
         paste(system.file(package='websockets'), "basic.html",sep="//")))
