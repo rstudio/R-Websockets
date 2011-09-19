@@ -60,7 +60,9 @@
   }
 }
 
-
+# A context is an environment that stores data associated with a single
+# websocket server port, including information on all clients connected
+# to that server, and a function that serves up static web pages.
 `createContext` <- function(
       port=7681L,
       webpage=static_page_service(
@@ -109,6 +111,9 @@
 # A static request, not a websocket
         context$static(j,h)
         .remove_client(j, context)
+      }
+      else {
+# Try to establish a new websocket connection
       }
     }
   }
