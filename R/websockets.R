@@ -1,34 +1,16 @@
-`websocket_write` <- function(DATA, WS, CONTEXT=NULL)
+`websocket_write` <- function(DATA, WS)
 {
-  if(is.null(CONTEXT)) {
-# Try to infer context for backwards compat. with older package versions.
-# Need to explicitly specify CONTEXT outside of callback situations.
-    frms = sys.frames()
-    if(length(frms)>2){
-      n = length(frms) - 2
-      l = ls(frms[[n]])
-      if(any(l=="context")) CONTEXT=frms[[n]]$context
-    }
-  }
-  v=4
-  if(is.null(CONTEXT)) warning("CONTEXT not indicated, assuming latest websocket version")
-  else {
-    if(exists("client_wsinfo",envir=CONTEXT) &&
-       any(names(CONTEXT$client_wsinfo)==as.character(WS))) {
-       v=CONTEXT$client_wsinfo[[as.character(WS)]]$v
-       if(is.null(v)) v=4
-    }
-  }
+  v = WS$wsinfo$v
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
-    .SOCK_SEND(WS,.frame(length(DATA)))
-    .SOCK_SEND(WS, DATA)
+    .SOCK_SEND(WS$socket,.frame(length(DATA)))
+    .SOCK_SEND(WS$socket, DATA)
     return(invisible())
   }
-  .SOCK_SEND(WS,raw(1))
-  .SOCK_SEND(WS,DATA)
-  .SOCK_SEND(WS,packBits(intToBits(255))[1])
+  .SOCK_SEND(WS$socket,raw(1))
+  .SOCK_SEND(WS$socket,DATA)
+  .SOCK_SEND(WS$socket,packBits(intToBits(255))[1])
 }
 
 `websocket_broadcast` <- function(DATA)
@@ -36,6 +18,7 @@
   stop("XXX TODO")
 }
 
+`set_callback` <- function(id, f, envir) assign(id, f, envir=envir)
 `setCallback` <- function(id, f, envir)
 {
   assign(id, f, envir=envir)
@@ -75,9 +58,9 @@
   createContext(port, webpage)
 }
 
-# A context is an environment that stores data associated with a single
-# websocket server port, including information on all clients connected
-# to that server, and a function that serves up static web pages.
+# A server (formerly context) is an environment that stores data associated
+# with a single websocket server port, including information on all clients
+# connected to that server, and a function that serves up static web pages.
 `createContext` <- function(
       port=7681L,
       webpage=static_page_service(
@@ -85,94 +68,116 @@
 {
   w <- new.env()
   assign('static', webpage, envir=w)
+# server_socket is the file descriptor associated with this server
   assign('server_socket', .SOCK_SERVE(port), envir=w)
-  assign('client_sockets', c(), envir=w)
-  assign('client_wsinfo', c(), envir=w)
-  assign('receive', function(WS, DATA, COOKIE=NULL) {cat("Received data from client ",WS,":\n");cat(rawToChar(DATA),"\n");websocket_write("HELLO",WS)},envir=w)
+# client_sockets is a list of connected clients, each of which is a
+# list with at least the following slots:
+# socket  (file descriptor)
+# wsinfo  (parsed websocket header data -- another list)
+# server  (the environment associated with the server for this client)
+  assign('client_sockets', list(), envir=w)
+# This is not required, but we supply a default recieve function:
+  assign('receive', function(WS, DATA, COOKIE=NULL) {cat("Received data from client ",WS,":\n");cat(rawToChar(DATA),"\n")},envir=w)
   return(w)
 }
 
 `.add_client` <- function(socket, context)
 {
   cs <- .SOCK_ACCEPT(socket)
-  assign('client_sockets',c(context$client_sockets,cs), envir=context)
+  client_sockets = context$client_sockets
+  client_sockets[[length(client_sockets)+1]] = list(socket=cs, wsinfo=NULL, server=context)
+  assign('client_sockets',client_sockets, envir=context)
   invisible()
 }
 
-`.remove_client` <- function(socket, context)
+`.remove_client` <- function(socket)
 {
-  cs <- context$client_sockets
-  cs <- cs[cs!=socket]
-  wsinfo <- context$client_wsinfo
-  wsinfo <- wsinfo[names(wsinfo)!=as.character(socket)]
-  .SOCK_CLOSE(socket)
-  assign('client_sockets',cs, envir=context)
-  assign('client_wsinfo',wsinfo, envir=context)
-  if(length(wsinfo)>0 && exists("closed"))
-    context$closed(WS, DATA=NULL, COOKIE=NULL)
+  server <- socket$server
+  cs <- socket$client_sockets
+  cs <- cs[!(unlist(lapply(cs,function(x) x$socket)) == socket$socket)]
+  .SOCK_CLOSE(socket$socket)
+  assign('client_sockets',cs, envir=server)
+# Trigger client closed callback
+  if(exists("closed", envir=server))
+    server$closed(socket, DATA=NULL, COOKIE=NULL)
   invisible()
 }
  
 # Cleanly close a websocket connection
-`websocket_close` <- function(socket, context)
+`websocket_close` <- function(socket)
 {
-cat("websocket_close ",socket,"\n")
 # XXX unclean! add close protocol
-  .remove_client(socket, context)
+  .remove_client(socket)
 }
 
-`service` <- function(context, timeout=1000L)
+# Naming convention will change in a futer version: 'context' will be
+# replaced by 'server.' Both are present in this version for compatility
+# with old package versions.
+`service` <- function(context, timeout=1000L, server=context)
 {
-  socks <- c(context$server_socket, context$client_sockets)
+  socks <- c(server$server_socket,
+    unlist(lapply(server$client_sockets,function(x) x$socket)))
   if(length(socks)<1) return(invisible())
   s <- .SOCK_POLL(socks, timeout=timeout)
   for(j in s){
-    if(j==context$server_socket){
-      .add_client(j,context)
+    if(j==server$server_socket){
+# New client connection
+      .add_client(j,server)
     }
     else{
-# Presently, program copies into a raw vector. Will also
+# A connected client is sending something.
+# Note: Presently, program copies into a raw vector. Will also
 # soon support in place recv via external pointers.
       x <- .SOCK_RECV(j)
+# j holds the socket file descriptor. Retrieve the client socket
+# from the server environment in J (lots more info).
+      J = server$client_sockets[
+           unlist(lapply(server$client_sockets,function(x) x$socket)) == j][[1]]
       if(length(x)<1) {
-        websocket_close(j, context)
+        websocket_close(J)
         next
       }
       h <- .parse_header(x)
       if(is.null(h)) {
 # Not a GET request, assume an incoming websocket payload.
-        if(!is.function(context$receive)){
+        if(!is.function(server$receive)){
 # Burn payload, nothing to do with it...
           next
         }
-        if(context$client_wsinfo[[as.character(j)]]["v"]<4) {
-          context$receive(WS=j, DATA=.v00_unframe(x), COOKIE=NULL)
+        v = J$wsinfo$v
+        if(v<4) {
+          if(is.function(server$receive))
+            server$receive(WS=J, DATA=.v00_unframe(x), COOKIE=NULL)
         }
         else{
-          context$receive(WS=j, DATA=.unframe(x), COOKIE=NULL)
+          if(is.function(server$receive))
+            server$receive(WS=J, DATA=.unframe(x), COOKIE=NULL)
         }
       }
       else if(is.null(h$Upgrade))
       {
 # A static request, not a websocket
-        context$static(j,h)
-        .remove_client(j, context)
+        if(is.function(server$static)) server$static(j,h)
+        .remove_client(J)
       }
       else {
 # Try to establish a new websocket connection
-# 1. Stash this client's header, identifying websocket protocol version, etc.
-        context$client_wsinfo[[as.character(j)]] = h
-# 2. Respond depending on version:
         v = 0
         if(!is.null(h[["Sec-WebSocket-Version"]]))
           if(as.numeric(h[["Sec-WebSocket-Version"]])>=4) v=4
-        context$client_wsinfo[[as.character(j)]]["v"] = v
+        h$v = v
+# Stash this client's header, identifying websocket protocol version, etc.
+# in the appropriate client_socket list
+        cs <- server$client_sockets
+        cs[[unlist(lapply(cs,function(x) x$socket)) == j]]$wsinfo = h
+        assign("client_sockets",cs,envir=server)
         if(v<4) .SOCK_SEND(j,.v00_resp_101(h))
         else .SOCK_SEND(j,.v04_resp_101(h))
-        if(is.function(context$established))
-          context$established(WS=j,DATA=NULL,COOKIE=NULL)
+# Trigger callback for newly-established connections
+        if(is.function(server$established))
+          server$established(WS=J,DATA=NULL,COOKIE=NULL)
 # COOKIE will go away in next version...it is useless in this version
-# just there for compatability with older versions...
+# just there for compatibility with older versions...
       }
     }
   }
