@@ -35,31 +35,39 @@
   assign(id, f, envir=envir)
 }
 
-`.webpage_file_reader` <- function(fn)
+# Example static service function
+# Supply any function that takes (socket, header) args
+# to handle request...
+`static_page_service` <- function(fn)
 {
   file_name <- fn
   f <- file(fn)
   file_content <- paste(readLines(f),collapse="\n")
   close(f)
-  function() {
+  function(socket, header) {
     finf <- file.info(fn)
     if(difftime(finf[,"mtime"],Sys.time(),units="secs")>0){
       f <- file(fn)
       file_content <<- paste(readLines(f),collapse="\n")
       close(f)
     }
-    file_content
+    if(header$RESOURCE == "/favicon.ico") {
+      .http_200(socket,"image/x-icon",.html5ico)
+    }
+    else {
+      .http_200(socket,content=file_content)
+    }
   }
 }
 
+
 `createContext` <- function(
       port=7681L,
-      webpage=.webpage_file_reader(
-                paste(system.file(package='websockets'),
-                        "basic.html",sep="//")))
+      webpage=static_page_service(
+        paste(system.file(package='websockets'), "basic.html",sep="//")))
 {
   w <- new.env()
-  assign('webpage', webpage, envir=w)
+  assign('static', webpage, envir=w)
   assign('server_socket', .SOCK_SERVE(port), envir=w)
   assign('client_sockets', c(), envir=w)
   return(w)
@@ -67,32 +75,40 @@
 
 `.add_client` <- function(socket, context)
 {
-  cs = .SOCK_ACCEPT(socket)
+  cs <- .SOCK_ACCEPT(socket)
   assign('client_sockets',c(context$client_sockets,cs), envir=context)
   invisible()
 }
 
-`.notawebsocket` <- function(socket, header, context)
+`.remove_client` <- function(socket, context)
 {
-# XXX 
-  .http_200(socket)
+  cs <- context$client_sockets
+  cs <- cs[cs!=socket]
+  .SOCK_CLOSE(socket)
+  assign('client_sockets',cs, envir=context)
+  invisible()
 }
 
-`service` <- function(context)
+`service` <- function(context, timeout=1000L)
 {
-  socks <- c(w$server_socket, w$client_sockets)
+  socks <- c(context$server_socket, context$client_sockets)
   if(length(socks)<1) return(invisible())
-  s <- .SOCK_POLL(socks)
+  s <- .SOCK_POLL(socks, timeout=timeout)
   for(j in s){
-    if(j==w$server_socket){
+    if(j==context$server_socket){
       .add_client(j,context)
     }
     else{
       x <- .SOCK_RECV(j)
       h <- .parse_header(x)
-      if(is.null(h$Upgrade) || h$Upgrade != "websocket")
+      if(is.null(h)) {
+# Not a GET request, assume an incoming websocket payload.
+      }
+      else if(is.null(h$Upgrade) || h$Upgrade != "websocket")
       {
-        .notawebsocket(j,h,context)
+# A static request, not a websocket
+        context$static(j,h)
+        .remove_client(j, context)
       }
     }
   }

@@ -3,7 +3,7 @@
 .SOCK_POLLPRI = 2L
 .SOCK_POLLOUT = 4L
 
-.SOCK_POLL = function(fds, timeout=1000, events=.SOCK_POLLIN)
+.SOCK_POLL = function(fds, timeout=1000L, events=.SOCK_POLLIN)
 {
   x = .Call('SOCK_POLL', as.integer(fds), as.integer(timeout), as.integer(events),
          PACKAGE='websockets')

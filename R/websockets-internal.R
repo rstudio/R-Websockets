@@ -1,14 +1,23 @@
 # Notes:
 # No extensions
 
+# XXX fix this up
 .parse_header = function(msg)
 {
+# Check to make sure this is a valid GET request. Error out if msg is not
+# of the right type, or return null right away if it does not start with GET.
   cli_header = list()
+  if(!(is.character(msg) || is.raw(msg))) stop("Must be raw or character")
+  n = ifelse(is.raw(msg),length(msg),nchar(msg))
+  if(n<3) return(c())
+  GET = ifelse(is.raw(msg),rawToChar(msg[1:3]), substr(msg,1,3))
+  if(GET != "GET") return(c())
+
+# We are dealing with a GET request, OK to continue.
   if(is.raw(msg)) {
     cli_header$raw = msg
     msg = rawToChar(msg)
   }
-  if(!is.character(msg)) stop("header must be raw or character")
   if(nchar(msg)<1) return(cli_header)
   x = gsub("\r","",msg)
   x = strsplit(x,"\n")
@@ -186,12 +195,12 @@
   h=paste(h,"Content-Type: ",content_type, "\r\n",sep="")
   h=paste(h,"Date: ",date(),"\r\n",sep="")
   h=paste(h,"Content-Length: ",n,"\r\n\r\n",sep="")
-  SOCK_SEND(socket,charToRaw(h))
+  .SOCK_SEND(socket,charToRaw(h))
   if(is.character(content))
-    SOCK_SEND(socket,charToRaw(content))
+    .SOCK_SEND(socket,charToRaw(content))
   else
-    SOCK_SEND(socket,content)
-  SOCK_CLOSE(socket)
+    .SOCK_SEND(socket,content)
+  .SOCK_CLOSE(socket)
 }
 
 
