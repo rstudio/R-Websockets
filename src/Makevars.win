@@ -1,8 +1,0 @@
-OBJECTS= base64-decode.o client-handshake.o extension-deflate-stream.o extension.o handshake.o libwebsockets.o md5.o parsers.o rwebsockets.o sha-1.o
-ifeq "$(WIN)" "64"
-PKG_CFLAGS=-DLWS_NO_FORK -DWin32 -DWIN32 -DWin64 -I. -Iwin32helpers -I$(R_HOME)/include 
-else
-PKG_CFLAGS=-DLWS_NO_FORK -DWin32 -DWIN32 -I. -Iwin32helpers -I$(R_HOME)/include 
-endif
-PKG_LIBS=$(R_HOME)/bin$(R_ARCH_BIN)/Rzlib.dll  -lWs2_32 -lMswsock 
-

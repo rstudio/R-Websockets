@@ -1,12 +1,12 @@
 Package: websockets
 Type: Package
 Title: HTML 5 Websocket Interface for R
-Version: 1.0.5
-Date: 2011-08-29
+Version: 1.1.0
+Date: 2011-09-13
 Author: B. W. Lewis <blewis@illposed.net>
 Maintainer: B. W. Lewis <blewis@illposed.net>
 Description: A simple HTML5 websocket interface for R.
-Depends: R (>= 2.5)
+Depends: R (>= 2.5), caTools (>=1.11), digest (>=0.5.0.1)
 Suggests: RJSONIO
 License: GPL-2
 LazyLoad: yes
