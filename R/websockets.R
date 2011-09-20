@@ -177,7 +177,7 @@ if(!is.na(server$DEBUG) && server$DEBUG) cat("Servicing descriptor ",j,"\n")
 # Stash this client's header, identifying websocket protocol version, etc.
 # in the appropriate client_socket list
         cs <- server$client_sockets
-        cs[[unlist(lapply(cs,function(x) x$socket)) == j]]$wsinfo = h
+        cs[unlist(lapply(cs,function(x) x$socket)) == j][[1]]$wsinfo = h
         assign("client_sockets",cs,envir=server)
         if(v<4) .SOCK_SEND(j,.v00_resp_101(h))
         else .SOCK_SEND(j,.v04_resp_101(h))
