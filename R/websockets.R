@@ -1,21 +1,23 @@
 `websocket_write` <- function(DATA, WS)
 {
   v = WS$wsinfo$v
+  if(is.null(v)) return(invisible())
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
     .SOCK_SEND(WS$socket,.frame(length(DATA)))
-    .SOCK_SEND(WS$socket, DATA)
-    return(invisible())
+    return(.SOCK_SEND(WS$socket, DATA))
   }
   .SOCK_SEND(WS$socket,raw(1))
   .SOCK_SEND(WS$socket,DATA)
   .SOCK_SEND(WS$socket,packBits(intToBits(255))[1])
 }
 
-`websocket_broadcast` <- function(DATA)
+`websocket_broadcast` <- function(DATA, servers)
 {
-  stop("XXX TODO")
+  for(j in servers){
+    lapply(j$client_sockets, function(x) websocket_write(DATA,x))
+  }
 }
 
 `set_callback` <- function(id, f, envir) assign(id, f, envir=envir)
@@ -133,10 +135,12 @@ if(!is.na(server$DEBUG) && server$DEBUG) cat("Servicing descriptor ",j,"\n")
       .add_client(j,server)
     }
     else{
+if(!is.na(server$DEBUG) && server$DEBUG) cat("RECV FROM CLIENT\n")
 # A connected client is sending something.
 # Note: Presently, program copies into a raw vector. Will also
 # soon support in place recv via external pointers.
       x <- .SOCK_RECV(j)
+if(!is.na(server$DEBUG) && server$DEBUG) cat(rawToChar(x[2:length(x)]),"\n")
 # j holds the socket file descriptor. Retrieve the client socket
 # from the server environment in J (lots more info).
       J = server$client_sockets[
@@ -147,6 +151,7 @@ if(!is.na(server$DEBUG) && server$DEBUG) cat("Servicing descriptor ",j,"\n")
       }
       h <- .parse_header(x)
       if(is.null(h)) {
+if(!is.na(server$DEBUG) && server$DEBUG) cat("WEBSOCKET RECV\n")
 # Not a GET request, assume an incoming websocket payload.
         if(!is.function(server$receive)){
 # Burn payload, nothing to do with it...
@@ -155,10 +160,12 @@ if(!is.na(server$DEBUG) && server$DEBUG) cat("Servicing descriptor ",j,"\n")
         v = J$wsinfo$v
         if(v<4) {
           if(is.function(server$receive))
+if(!is.na(server$DEBUG) && server$DEBUG) cat("WEBSOCKET RECV 00\n")
             server$receive(WS=J, DATA=.v00_unframe(x), COOKIE=NULL)
         }
         else{
           if(is.function(server$receive))
+if(!is.na(server$DEBUG) && server$DEBUG) cat("WEBSOCKET RECV 04\n")
             server$receive(WS=J, DATA=.unframe(x), COOKIE=NULL)
         }
       }

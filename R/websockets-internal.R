@@ -70,7 +70,7 @@
   resp = paste(resp,"Sec-WebSocket-Origin: ",origin,"\r\n",sep="")
   resp = paste(resp,"Sec-WebSocket-Location: ",location,"\r\n",sep="")
   resp = paste(resp,"Sec-WebSocket-Protocol: ",prot,"\r\n\r\n",sep="")
-  c(charToRaw(resp),hash,charToRaw("\r\n\r\n"))
+  c(charToRaw(resp),hash)
 }
 
 # Version 04 to at least 15 handshake

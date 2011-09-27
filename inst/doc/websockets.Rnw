@@ -71,8 +71,7 @@ blewis@illposed.net}
 
 \section{Introduction}
 
-The {\tt websockets} package is an HTML 5 Websocket implementation for the R
-language, based on the C {\tt libwebsockets} library written by Andy Green.
+The {\tt websockets} package is an HTML 5 Websocket implementation for R.
 The {\tt websockets} package is especially well-suited to lightweight
 interaction between R and web scripting languages like Javascript.
 Multiple simultaneous websocket connections are supported.

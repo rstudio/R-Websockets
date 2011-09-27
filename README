@@ -1,7 +1,3 @@
 R/Websockets
-
 A simple, portable HTML 5 Websocket API implementation for R.
-
-websockets package Copyright (C) 2011 by Bryan W. Lewis, <blewis@illposed.net>, package licensed under GNU GPL v2.
-
-libwebsockets Copyright (C) 2010 by Andy Green <andy@warmcat.com>, licensed under GNU LGPL v2.1.
+Copyright (C) 2011 by Bryan W. Lewis, <blewis@illposed.net>, package licensed under GNU GPL v2.
