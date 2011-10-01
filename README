@@ -1,3 +1,18 @@
 R/Websockets
 A simple, portable HTML 5 Websocket API implementation for R.
 Copyright (C) 2011 by Bryan W. Lewis, <blewis@illposed.net>, package licensed under GNU LGPL v3.
+
+Significant changes in package version 1.1.0:
+- We rebuilt the package from the ground-up, removing the dependency on the
+  libwebsockets C library, and instead implementing the websockets protocol
+  mostly in R.
+- The older IETF-00 protocol supported by the previous package versions
+  as well as newer protocols up to at least -15 are now supported.
+- All features related to "cookies" have been removed. Sorry if this breaks
+  something. It's easy enough to replicate that functionality directly in R.
+- Each websocket server has an R environment associated with it. The environment
+  contains a list of connected client websockets and all other data required
+  by the server.
+- Otherwise we try to maintain syntax compatibility with previous package
+  versions.
+- The license has changed from GPL-2 to LGPL-3.

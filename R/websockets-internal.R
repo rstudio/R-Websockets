@@ -26,7 +26,6 @@
   r
 }
 
-# XXX fix this up
 .parse_header = function(msg)
 {
 # Check to make sure this is a valid GET request. Error out if msg is not
@@ -111,7 +110,7 @@
 
 # Low-level frame header generator, extensions not supported
 # Version 01 to at least 15 data framing
-# The bit ordering is a bit hard to follow.
+# The bit ordering is a bit hard to follow, sorry.
 .frame = function(len, FIN=TRUE, opcode=1L, mask=FALSE)
 {
   if(is.character(opcode)) opcode = strtoi(opcode, 16L)
@@ -155,6 +154,9 @@
 #
 # XXX does not handle fragmentation yet...add this.
 # The bit ordering is a bit hard to follow, sorry.
+# This version of unframe returns a list with two elements:
+# header: the frame header
+# data:   the unmasked frame data payload or NULL
 .unframe = function(data)
 {
   frame=list()
@@ -198,20 +200,33 @@
   else{
     stop("Only raw message types presently supported.")
   }
-  if(length(data) < frame$offset || is.null(frame$key)) return(c())
-  .MASK(data[frame$offset:length(data)],frame$key)
+  if(length(data) < frame$offset || is.null(frame$key)) 
+    return(list(header=frame,data=c()))
+  list(header=frame,data=.MASK(data[frame$offset:length(data)],frame$key))
 }
 
+`.add_client` <- function(socket, server)
+{
+  cs <- .SOCK_ACCEPT(socket)
+  client_sockets = server$client_sockets
+  client_sockets[[length(client_sockets)+1]] =
+    list(socket=cs, wsinfo=NULL, server=server)
+  assign('client_sockets',client_sockets, envir=server)
+  invisible()
+}
 
-#cs = .SOCK_ACCEPT(s)
-#print(cs)
-#  x = rawToChar(.SOCK_RECV(cs))
-#  h = .parse_header(x)
-#cat(.resp_101(h))
-#  .SOCK_SEND(cs,resp_101(h))
-#  msg = charToRaw("HELLO")
-#  SOCK_SEND(cs,c(frame(length(msg)),msg)) 
-#  SOCK_CLOSE(cs)
+`.remove_client` <- function(socket)
+{
+  server <- socket$server
+  cs <- socket$server$client_sockets
+  cs <- cs[!(unlist(lapply(cs,function(x) x$socket)) == socket$socket)]
+  j = .SOCK_CLOSE(socket$socket)
+  assign('client_sockets',cs, envir=server)
+# Trigger client closed callback
+  if(exists("closed", envir=server))
+    server$closed(socket, DATA=NULL, COOKIE=NULL)
+  j
+}
 
 # Generic, very basic 200 response with web page
 # other example maybe in response to /favicon.ico for example:

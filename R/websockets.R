@@ -2,7 +2,7 @@
 {
   v = WS$wsinfo$v
   if(is.null(v)) {
-# Perhaps WS is a nested list, try to unlist.
+# Perhaps WS is a nested list, try to unlist?
     WS = WS[[1]]
     v = WS$wsinfo$v
 # Give up.
@@ -102,34 +102,11 @@
   return(w)
 }
 
-`.add_client` <- function(socket, server)
-{
-  cs <- .SOCK_ACCEPT(socket)
-  client_sockets = server$client_sockets
-  client_sockets[[length(client_sockets)+1]] =
-    list(socket=cs, wsinfo=NULL, server=server)
-  assign('client_sockets',client_sockets, envir=server)
-  invisible()
-}
-
-`.remove_client` <- function(socket)
-{
-  server <- socket$server
-  cs <- socket$server$client_sockets
-  cs <- cs[!(unlist(lapply(cs,function(x) x$socket)) == socket$socket)]
-  j = .SOCK_CLOSE(socket$socket)
-  assign('client_sockets',cs, envir=server)
-# Trigger client closed callback
-  if(exists("closed", envir=server))
-    server$closed(socket, DATA=NULL, COOKIE=NULL)
-  j
-}
  
 # Cleanly close a websocket client connection or server
 `websocket_close` <- function(connection)
 {
-# XXX unclean! add close protocol
-  if(!is.null(connection$socket)) .remove_client(connection)
+  if(!is.null(connection[[1]]$socket)) .remove_client(connection[[1]])
   else {
 # This is not a client socket, perhaps a server?
     if(!is.null(connection$server_socket)) {
@@ -140,7 +117,7 @@
 }
 
 # Naming convention will change in a futer version: 'context' will be
-# replaced by 'server.' Both are present in this version for compatility
+# replaced by 'server.' Both are present in this version for compatibility
 # with old package versions.
 `service` <- function(context, timeout=1000L, server=context)
 {
@@ -158,8 +135,8 @@
 # Note: Presently, program copies into a raw vector. Will also
 # soon support in place recv via external pointers.
       x <- .SOCK_RECV(j)
-# j holds the socket file descriptor. Retrieve the client socket
-# from the server environment in J (lots more info).
+# j holds just the socket file descriptor. Retrieve the client socket
+# from the server environment in J. XXX Improve this with a hashed lookup.
       J = server$client_sockets[
            unlist(lapply(server$client_sockets,function(x) x$socket)) == j][[1]]
       if(length(x)<1) {
@@ -175,12 +152,16 @@
         }
         v = J$wsinfo$v
         if(v<4) {
-          if(is.function(server$receive))
-            server$receive(WS=J, DATA=.v00_unframe(x), COOKIE=NULL)
+          server$receive(WS=J, DATA=.v00_unframe(x), COOKIE=NULL)
         }
         else{
-          if(is.function(server$receive))
-            server$receive(WS=J, DATA=.unframe(x), COOKIE=NULL)
+          DATA = .unframe(x)
+          if(DATA$header$opcode == 1){
+            server$receive(WS=J, DATA=DATA$data, COOKIE=NULL)
+          } else if(DATA$header$opcode == 8) {
+            websocket_close(J)
+            next
+          }
         }
       }
       else if(is.null(h$Upgrade))
