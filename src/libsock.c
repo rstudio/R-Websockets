@@ -1,18 +1,46 @@
 /* Minimalist socket functions */
+#include <stdio.h>
+#ifdef WIN32
+#include <winsock2.h>
+#include <windows.h>
+#else
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include <stdio.h>
 #include <unistd.h>
 #include <poll.h>
+#define INVALID_SOCKET -1
+#endif
 
 #include <R.h>
 #include <Rinternals.h>
 #include <R_ext/Utils.h>
+#include <R_ext/Rdynload.h>
 #include "libsock.h"
+
+#ifdef WIN32
+WSADATA wsaData;
+#endif
+
+void
+R_init_websockets(DllInfo * info)
+{
+#ifdef WIN32
+  int j = WSAStartup(MAKEWORD(2,2),&wsaData);
+  if(j!=0) error("Windows socket initialization error");
+#endif
+}
+
+#ifdef WIN32
+void
+R_unload_websockets(DllInfo * info)
+{
+  WSACleanup();
+}
+#endif
 
 /* tcpserv
  * Set up a tcp/ip server. Set lport to 0 for an OS-assigned port. The
@@ -21,17 +49,22 @@
 int
 tcpserv (int lport)
 {
-  int s, n;
+#ifdef WIN32
+  SOCKET s;
+#else
+  int s;
+#endif
+  int n;
   struct sockaddr_in sin;
 
-  bzero (&sin, sizeof (sin));
+  memset(&sin, 0, sizeof(sin));
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = htonl (INADDR_ANY);     /* listen on all interfaces */
   sin.sin_port = htons (lport); /* OS assigns port if lport=0 */
   sin.sin_port = htons (lport); /* OS assigns port if lport=0 */
 
   s = socket (AF_INET, SOCK_STREAM, 0);
-  if (s < 0)
+  if (s == INVALID_SOCKET)
     {
       return -1;
     } 
@@ -39,20 +72,32 @@ tcpserv (int lport)
   if (setsockopt (s, SOL_SOCKET, SO_REUSEADDR, (const void *) &n, sizeof (n))
       < 0)
     {
+#ifdef WIN32
+      closesocket(s);
+#else
       close (s);
+#endif
       return -1;
     }
   if (bind (s, (struct sockaddr *) &sin, sizeof (sin)) < 0)
     { 
+#ifdef WIN32
+      closesocket(s);
+#else
       close (s);
+#endif
       return -1;
     }
   if (listen (s, BACKLOG) < 0)
     { 
+#ifdef WIN32
+      closesocket(s);
+#else
       close (s);
+#endif
       return -1;
     }
-  return s;
+  return (int)s;
 }
 
 /* tcpconnect
@@ -73,13 +118,17 @@ tcpconnect (char *host, int port)
   else
     {
       s = socket (AF_INET, SOCK_STREAM, 0);
-      bzero (&sa, sizeof (sa));
+      memset(&sa, 0, sizeof(sa));
       sa.sin_family = AF_INET;
       sa.sin_port = htons (port);
       sa.sin_addr = *(struct in_addr *) h->h_addr;
       if (connect (s, (struct sockaddr *) &sa, sizeof (sa)) < 0)
 	{
-	  close (s);
+#ifdef WIN32
+          closesocket(s);
+#else
+          close (s);
+#endif
 	  return -1;
 	}
     }
@@ -124,7 +173,11 @@ SEXP MASK (SEXP DATA, SEXP KEY)
 
 SEXP SOCK_CLOSE (SEXP S)
 { 
+#ifdef WIN32
+  return ScalarInteger(closesocket(INTEGER(S)[0]));
+#else
   return ScalarInteger(close(INTEGER(S)[0]));
+#endif
 }
 
 SEXP SOCK_ACCEPT (SEXP S)
@@ -174,7 +227,7 @@ SEXP SOCK_POLL (SEXP FDS, SEXP TIMEOUT, SEXP EVENTS)
     pfds[j].events = events;
   }
   R_CheckUserInterrupt();
-  poll(pfds, (nfds_t) n, t);
+  poll(pfds, n, t);
   R_CheckUserInterrupt();
   PROTECT(ans = allocVector(INTSXP, n));
   for(j=0;j<n;++j) {
@@ -220,7 +273,7 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT)
     p = msg + k;
     memcpy((void *)p, buf, j);
     k = k + j;
-    h=poll(&pfds, (nfds_t)1, 50);
+    h=poll(&pfds, 1, 50);
   }
   if(INTEGER(EXT)[0]) {
 /* return a pointer to the recv buffer */
@@ -230,7 +283,7 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT)
   else {
 /* Copy to a raw vector */
     PROTECT(ans=allocVector(RAWSXP,k));
-    p = RAW(ans);
+    p = (char *)RAW(ans);
     memcpy((void *)p, (void *)msg, k);
     free(msg);
     UNPROTECT(1);

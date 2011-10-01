@@ -12,8 +12,6 @@ SEXP SOCK_SEND (SEXP, SEXP);
 SEXP SOCK_NAME (SEXP);
 SEXP SOCK_SERVE (SEXP);
 SEXP SOCK_CONNECT (SEXP, SEXP);
-int
-mingw_poll (struct pollfd *, unsigned int, int);
 
 #ifdef WIN32
 #include <time.h>
@@ -37,5 +35,7 @@ struct pollfd {
   short events;     /* requested events */
   short revents;    /* returned events */
 };
+int
+mingw_poll (struct pollfd *, unsigned int, int);
 #define poll(x, y, z)        mingw_poll(x, y, z)
 #endif

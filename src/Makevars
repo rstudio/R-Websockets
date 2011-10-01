@@ -1,2 +1,2 @@
 PKG_CFLAGS=-D`${R_HOME}/bin/R --slave -e 'cat(Sys.info()[[1]])'` -DLWS_NO_FORK 
-PKG_LIBS=-lz
+PKG_LIBS=

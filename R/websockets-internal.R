@@ -12,13 +12,13 @@
   n = ifelse(is.raw(msg),length(msg),nchar(msg))
   if(n<3) return(c())
   if(is.raw(msg)) if(msg[1]==raw(1)) return(c())
-  GET = ifelse(is.raw(msg),rawToChar(msg[1:3]), substr(msg,1,3))
+  GET = tryCatch({ifelse(is.raw(msg),rawToChar(msg[1:3]), substr(msg,1,3))},
+                 error=function(e) c())
   if(GET != "GET") return(c())
-
 # We are dealing with a GET request, OK to continue.
   if(is.raw(msg)) {
     cli_header$raw = msg
-    msg = rawToChar(msg)
+    msg = rawToChar(msg[msg!=0])
   }
   if(n<1) return(cli_header)
   x = gsub("\r","",msg)
@@ -174,7 +174,7 @@
   else{
     stop("Only raw message types presently supported.")
   }
-  if(length(data)<1 || is.null(frame$key)) return(c())
+  if(length(data) < frame$offset || is.null(frame$key)) return(c())
   .MASK(data[frame$offset:length(data)],frame$key)
 }
 

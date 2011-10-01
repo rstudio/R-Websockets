@@ -79,9 +79,17 @@
 # server  (the environment associated with the server for this client)
   assign('client_sockets', list(), envir=w)
 # This is not required, but we supply a default recieve function:
-  assign('receive', function(WS, DATA, COOKIE=NULL) {cat("Received data from client ",WS,":\n");cat(rawToChar(DATA),"\n")},envir=w)
-  assign('closed', function(WS, DATA, COOKIE=NULL) {cat("Client socket",WS$socket," was closed.\n");if(is.null(WS$wsinfo)){cat("(It was not a websocket client, just a static web page.)\n")}},envir=w)
-  assign('established', function(WS, DATA, COOKIE=NULL) {cat("Client socket",WS$socket," has been established.\n")},envir=w)
+  assign('receive', function(WS, DATA, COOKIE=NULL) {
+                      cat("Received data from client ",WS,":\n")
+                      if(is.raw(DATA)) cat(rawToChar(DATA),"\n")
+                    },envir=w)
+  assign('closed', function(WS, DATA, COOKIE=NULL) {
+                      cat("Client socket",WS$socket," was closed.\n")
+                      if(is.null(WS$wsinfo)){cat("(It was not a websocket client, just a static web page.)\n")}
+                   },envir=w)
+  assign('established', function(WS, DATA, COOKIE=NULL) {
+                      cat("Client socket",WS$socket," has been established.\n")
+                   },envir=w)
   return(w)
 }
 
@@ -89,7 +97,6 @@
 {
   if(!is.na(server$DEBUG) && server$DEBUG) cat("Adding new client socket...")
   cs <- .SOCK_ACCEPT(socket)
-  if(!is.na(server$DEBUG) && server$DEBUG) cat(cs,"\n")
   client_sockets = server$client_sockets
   client_sockets[[length(client_sockets)+1]] =
     list(socket=cs, wsinfo=NULL, server=server)
@@ -104,19 +111,26 @@
     cat("Removing client",socket$socket,"\n")
   cs <- socket$server$client_sockets
   cs <- cs[!(unlist(lapply(cs,function(x) x$socket)) == socket$socket)]
-  .SOCK_CLOSE(socket$socket)
+  j = .SOCK_CLOSE(socket$socket)
   assign('client_sockets',cs, envir=server)
 # Trigger client closed callback
   if(exists("closed", envir=server))
     server$closed(socket, DATA=NULL, COOKIE=NULL)
-  invisible()
+  j
 }
  
-# Cleanly close a websocket connection
-`websocket_close` <- function(socket)
+# Cleanly close a websocket client connection or server
+`websocket_close` <- function(connection)
 {
 # XXX unclean! add close protocol
-  .remove_client(socket)
+  if(!is.null(connection$socket)) .remove_client(connection)
+  else {
+# This is not a client socket, perhaps a server?
+    if(!is.null(connection$server_socket)) {
+      for(j in connection$client_sockets) .remove_client(j)
+      .SOCK_CLOSE(connection$server_socket)
+    }
+  }
 }
 
 # Naming convention will change in a futer version: 'context' will be
@@ -135,12 +149,10 @@ if(!is.na(server$DEBUG) && server$DEBUG) cat("Servicing descriptor ",j,"\n")
       .add_client(j,server)
     }
     else{
-if(!is.na(server$DEBUG) && server$DEBUG) cat("RECV FROM CLIENT\n")
 # A connected client is sending something.
 # Note: Presently, program copies into a raw vector. Will also
 # soon support in place recv via external pointers.
       x <- .SOCK_RECV(j)
-if(!is.na(server$DEBUG) && server$DEBUG) cat(rawToChar(x[2:length(x)]),"\n")
 # j holds the socket file descriptor. Retrieve the client socket
 # from the server environment in J (lots more info).
       J = server$client_sockets[
@@ -151,7 +163,6 @@ if(!is.na(server$DEBUG) && server$DEBUG) cat(rawToChar(x[2:length(x)]),"\n")
       }
       h <- .parse_header(x)
       if(is.null(h)) {
-if(!is.na(server$DEBUG) && server$DEBUG) cat("WEBSOCKET RECV\n")
 # Not a GET request, assume an incoming websocket payload.
         if(!is.function(server$receive)){
 # Burn payload, nothing to do with it...
@@ -160,12 +171,10 @@ if(!is.na(server$DEBUG) && server$DEBUG) cat("WEBSOCKET RECV\n")
         v = J$wsinfo$v
         if(v<4) {
           if(is.function(server$receive))
-if(!is.na(server$DEBUG) && server$DEBUG) cat("WEBSOCKET RECV 00\n")
             server$receive(WS=J, DATA=.v00_unframe(x), COOKIE=NULL)
         }
         else{
           if(is.function(server$receive))
-if(!is.na(server$DEBUG) && server$DEBUG) cat("WEBSOCKET RECV 04\n")
             server$receive(WS=J, DATA=.unframe(x), COOKIE=NULL)
         }
       }
