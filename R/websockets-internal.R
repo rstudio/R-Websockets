@@ -2,6 +2,28 @@
 # - no extensions
 # - subprotocol is ignored for now
 
+.numToBits = function(x, fixedLength=NULL)
+{
+  j = 1;
+  r = raw(1);
+  if(round(x)!=x) {
+    x = round(x)
+    warning("Rounding x to whole number")
+  }
+  if(!is.null(fixedLength)) r = raw(fixedLength)
+  one = intToBits(1L)[1]
+  while(x>0) {
+    if((x %% 2)==1){
+      r[j] = one
+      x = x - 1
+    } else r[j] = raw(1)
+    x = x / 2
+    j = j + 1
+  }
+  if(!is.null(fixedLength)) r = r[1:fixedLength]
+  r
+}
+
 # XXX fix this up
 .parse_header = function(msg)
 {
@@ -58,12 +80,12 @@
   num2 = as.numeric(rawToChar(charToRaw(key2)[gregexpr("[0-9]",text=key2)[[1]]]))
   s1 = length(charToRaw(key1)[gregexpr(" ",text=key1)[[1]]])
   s2 = length(charToRaw(key2)[gregexpr(" ",text=key2)[[1]]])
-  v1 = as.integer(num1/s1)
-  v2 = as.integer(num2/s2)
+  v1 = num1/s1
+  v2 = num2/s2
   n = length(cli_header$raw)
   key3 = cli_header$raw[(n-7):n]
-  r1 = packBits(intToBits(v1))[4:1]
-  r2 = packBits(intToBits(v2))[4:1]
+  r1 = packBits(.numToBits(v1,32))[4:1]
+  r2 = packBits(.numToBits(v2,32))[4:1]
   val = c(r1,r2,key3)
   hash = digest(val,algo="md5",serialize=FALSE,raw=TRUE)
   resp = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
