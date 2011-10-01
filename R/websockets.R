@@ -1,7 +1,16 @@
 `websocket_write` <- function(DATA, WS)
 {
   v = WS$wsinfo$v
-  if(is.null(v)) return(invisible())
+  if(is.null(v)) {
+# Perhaps WS is a nested list, try to unlist.
+    WS = WS[[1]]
+    v = WS$wsinfo$v
+# Give up.
+    if(is.null(v)) {
+      warning("Invalid websocket")
+      return(invisible())
+    }
+  }
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
@@ -80,7 +89,7 @@
   assign('client_sockets', list(), envir=w)
 # This is not required, but we supply a default recieve function:
   assign('receive', function(WS, DATA, COOKIE=NULL) {
-                      cat("Received data from client ",WS,":\n")
+                      cat("Received data from client ",WS$socket,":\n")
                       if(is.raw(DATA)) cat(rawToChar(DATA),"\n")
                     },envir=w)
   assign('closed', function(WS, DATA, COOKIE=NULL) {
@@ -95,7 +104,6 @@
 
 `.add_client` <- function(socket, server)
 {
-  if(!is.na(server$DEBUG) && server$DEBUG) cat("Adding new client socket...")
   cs <- .SOCK_ACCEPT(socket)
   client_sockets = server$client_sockets
   client_sockets[[length(client_sockets)+1]] =
@@ -107,8 +115,6 @@
 `.remove_client` <- function(socket)
 {
   server <- socket$server
-  if(!is.na(server$DEBUG) && server$DEBUG)
-    cat("Removing client",socket$socket,"\n")
   cs <- socket$server$client_sockets
   cs <- cs[!(unlist(lapply(cs,function(x) x$socket)) == socket$socket)]
   j = .SOCK_CLOSE(socket$socket)
@@ -143,7 +149,6 @@
   if(length(socks)<1) return(invisible())
   s <- .SOCK_POLL(socks, timeout=timeout)
   for(j in s){
-if(!is.na(server$DEBUG) && server$DEBUG) cat("Servicing descriptor ",j,"\n")
     if(j==server$server_socket){
 # New client connection
       .add_client(j,server)

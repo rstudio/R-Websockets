@@ -2,6 +2,8 @@
 # - no extensions
 # - subprotocol is ignored for now
 
+# numToBits can convert large integers to bits.
+# It uses the same bit ordering as intToBits.
 .numToBits = function(x, fixedLength=NULL)
 {
   j = 1;
