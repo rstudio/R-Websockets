@@ -20,9 +20,9 @@
   .Call('SOCK_ACCEPT', as.integer(socket), PACKAGE='websockets')
 }
 
-.SOCK_RECV = function(socket, external_pointer=FALSE)
+.SOCK_RECV = function(socket, external_pointer=FALSE, max_buffer_size=2^24)
 {
-  .Call('SOCK_RECV', as.integer(socket), as.integer(external_pointer), PACKAGE='websockets')
+  .Call('SOCK_RECV', as.integer(socket), as.integer(external_pointer), as.numeric(max_buffer_size), PACKAGE='websockets')
 }
 
 .SOCK_SEND = function(socket, msg)

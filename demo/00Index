@@ -1,6 +1,2 @@
-json	A self-contained example that uses JSON and flotr.
-plotting  A self-contained example of R graphics output over websockets.
 websockets 	A self-contained basic websocket example.
-PerformanceAnalytics 	A self-contained basic websocket with embedded R plots.
-spigot	A slef-contained example that broadcasts random numbers.
-secret	An example showing how to write to specific websockets.
+fortunes 	A silly chat-like example with a wordcloud plot and R fotunes.

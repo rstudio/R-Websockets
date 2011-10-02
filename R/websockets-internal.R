@@ -2,6 +2,15 @@
 # - no extensions
 # - subprotocol is ignored for now
 
+.onLoad = function(libname,pkgname)
+{
+  options(websockets_max_buffer_size=16777216)
+}
+.onUnload = function(libpath)
+{
+  options(websockets_max_buffer_size=NULL)
+}
+
 # numToBits can convert large integers to bits.
 # It uses the same bit ordering as intToBits.
 .numToBits = function(x, fixedLength=NULL)

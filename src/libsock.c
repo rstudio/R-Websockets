@@ -248,7 +248,7 @@ SEXP SOCK_SEND(SEXP S, SEXP DATA)
   return ScalarInteger(send(s, data, len, 0));
 }
 
-SEXP SOCK_RECV(SEXP S, SEXP EXT)
+SEXP SOCK_RECV(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
 {
   SEXP ans = R_NilValue;
   void *buf;
@@ -256,7 +256,9 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT)
   struct pollfd pfds;
   int h, j, s = INTEGER(S)[0];
   size_t k = 0;
+  double maxbufsize = REAL(MAXBUFSIZE)[0];
   int bufsize = MBUF;
+  if(maxbufsize < RXBUF) maxbufsize = RXBUF;
   buf = (void *)malloc(RXBUF);
   msg = (char *)malloc(MBUF);
   p = msg;
@@ -266,6 +268,14 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT)
   while(h>0) {
     j = recv(s, buf, RXBUF, 0);
     if(j<1) break;
+/* If we exceed the maxbufsize, break. This leaves data
+ * in the TCP RX buffer. XXX We need to tell R that this
+ * is an incomplete read so this can be handled at a high
+ * level, for example by closing the connection or whatever.
+ * The code is here for basic protection from DoS and memory
+ * overcommit attacks. 
+ */
+    if(k+j > maxbufsize) break;
     if(k + j > bufsize) {
       bufsize = bufsize + MBUF;
       msg = (char *)realloc(msg, bufsize);  
