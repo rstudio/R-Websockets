@@ -148,9 +148,9 @@ k = 1
 tf = tempfile()
 Words = data.frame()
 while(TRUE){
-  service(w, timeout=500L)
+  service(w, timeout=2500L)
   j = j + 1
-  if(j %% 6 == 0) {
+  if(j %% 5 == 0) {
     j = 0
     k = k + 1
     d = paste(fortune()[1],collapse=" ")
