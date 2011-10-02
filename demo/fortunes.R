@@ -84,12 +84,12 @@ function checkKey(evt)
 This is a simple WebSocket chat server. Words typed in the small text
 box will appear in the chat history box in all connected clients after
 pressing ENTER. The R WebSocket server periodically emits phrases from the R 
-<a href="http://cran.r-project.org/web/packages/fortunes/"><b>fortunes</b></a>
+<a targe="_blank" href="http://cran.r-project.org/web/packages/fortunes/"><b>fortunes</b></a>
 package. A word cloud showing words in the chat history
 with frequency greater than 3 is also periodically updated (limited to a 
 maximum of 50 words for rendering speed and legibility). The word cloud
 is generated with the R 
-<a href="http://cran.r-project.org/web/packages/wordcloud/index.html"><b>wordcloud</b></a> package.
+<a target="_blank" href="http://cran.r-project.org/web/packages/wordcloud/index.html"><b>wordcloud</b></a> package.
 </p>
 </body>
 </html>
@@ -170,15 +170,15 @@ while(TRUE){
   }
   if(k %% 3 == 0) {
     k = 1
-    if(max(Words[,2]>2)) {
-      jpeg(file=tf, width=600,height=600,quality=100)
-      devAskNewPage(ask=FALSE)
-      wordcloud(Words[,1],Words[,2],vfont=c("serif","bold"),max.words=50)
-      dev.off()
-      p = base64encode(readBin(tf,what="raw",n=1e6))
-      p = paste("data:image/jpg;base64,\n",p,sep="")
-      websocket_broadcast(paste(p),w)
-      file.remove(tf)
-    }
+    min.freq = min(max(Words[,2]),3)
+    jpeg(file=tf, width=600,height=600,quality=100)
+    devAskNewPage(ask=FALSE)
+    wordcloud(Words[,1],Words[,2],vfont=c("serif","bold"),
+              max.words=50, min.freq=min.freq)
+    dev.off()
+    p = base64encode(readBin(tf,what="raw",n=1e6))
+    p = paste("data:image/jpg;base64,\n",p,sep="")
+    websocket_broadcast(paste(p),w)
+    file.remove(tf)
   }
 }
