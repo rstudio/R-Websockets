@@ -25,11 +25,17 @@
   .Call('SOCK_RECV', as.integer(socket), as.integer(external_pointer), as.numeric(max_buffer_size), PACKAGE='websockets')
 }
 
+# We trap the possibility of a SIGPIPE signal error during SOCK_SEND.
 .SOCK_SEND = function(socket, msg)
 {
-  if(is.raw(msg)) return(.Call('SOCK_SEND', socket, msg, PACKAGE='websockets'))
+  if(is.raw(msg)) return(
+    tryCatch(.Call('SOCK_SEND', socket, msg, PACKAGE='websockets'),
+      error=function(e) -1))
   if(is.character(msg))
-    return(.Call('SOCK_SEND', socket, charToRaw(msg), PACKAGE='websockets'))
+    return(
+      tryCatch(
+        .Call('SOCK_SEND', socket, charToRaw(msg), PACKAGE='websockets'),
+        error=function(e) -1))
   stop("msg must be of data type 'Raw'")
 }
 

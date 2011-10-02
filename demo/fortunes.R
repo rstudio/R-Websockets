@@ -5,11 +5,17 @@ htmldata = '<html><head><title>R/Websockets</title></head>
 <body>
 <style type="text/css">
 div.scroll {
-height: 200px;
-width: 100%;
-overflow: auto;
-border: 1px solid #666;
-padding: 8px;
+  height: 200px;
+  width: 600px;
+  overflow: auto;
+  border: 1px solid #666;
+  padding: 8px;
+}
+input[type="text"], textarea { 
+  padding: 0;
+  margin: 0;
+  width:616px; 
+  border: 1px solid #666;
 }
 </style>
 <script>
@@ -24,9 +30,10 @@ try {
   } 
   socket.onmessage = function got_packet(msg) {
     if(msg.data.startsWith("CHAT")) {
-      chattext = msg.data.concat("\n");
-      chattext = msg.data.concat(chattext);
-      document.getElementById("chat").textContent = chattext;
+      m = msg.data.replace(/^CHAT/,"");
+      chattext = m.concat("\\n",chattext);
+      document.getElementById("chat").innerHTML = 
+        "<pre>" + chattext + "</pre>";
     } 
     else document.getElementById("plot").src = msg.data;
   } 
@@ -54,12 +61,12 @@ function checkKey(evt)
 </script>
 
 <table><tr>
-<td>Message:</td>
-<td><input type="text" id="msg" value="" size="80" maxlength="150" onkeypress="return checkKey(event);"/>
-</td></tr><tr>
 <td id="statustd">
 <div id="wsdi_status"> Connection not initialized </div>
-</td><td>
+</td></tr></table>
+<table><tr>
+<td><input type="text" id="msg" value="" size="80" maxlength="150" onkeypress="return checkKey(event);"/>
+</td></tr><tr><td>
 <div id="chat" class="scroll">
 </div>
 </td></tr></table>
@@ -67,8 +74,29 @@ function checkKey(evt)
 </html>
 '
 
-#if(require('fortunes') && require('wordcloud') && require('tm'))
+#if(!(require('fortunes') && require('wordcloud') && require('tm')))
+#  stop("This demo requires the 'fortunes' 'wordcloud' and 'tm' packages.")
+require('fortunes')
 w = createContext(webpage=static_text_service(htmldata))
+
+text = ""
+
+f = function(DATA,WS,...)
+{
+  d = rawToChar(DATA)
+  x = paste("CHAT","Client ",WS$socket," says: ",d,sep="")
+  websocket_broadcast(paste(x),WS$server)
+}
+set_callback("receive",f,w)
+
+j = 0
 while(TRUE){
   service(w)
+  j = j + 1
+  if(j %% 5 == 0) {
+    j = 0
+    d = paste(fortune(),collapse=" ")
+    x = paste("CHAT","R fortune says: ",d,sep="")
+    websocket_broadcast(x,w)
+  }
 }

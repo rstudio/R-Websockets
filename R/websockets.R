@@ -1,30 +1,38 @@
 `websocket_write` <- function(DATA, WS)
 {
-  v = WS$wsinfo$v
+  v <- WS$wsinfo$v
   if(is.null(v)) {
 # Perhaps WS is a nested list, try to unlist?
-    WS = WS[[1]]
-    v = WS$wsinfo$v
+    WS <- WS[[1]]
+    if(length(WS)>1) v <- WS$wsinfo$v
 # Give up.
     if(is.null(v)) {
-      warning("Invalid websocket")
+#      warning("Invalid websocket")
       return(invisible())
     }
   }
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
-    .SOCK_SEND(WS$socket,.frame(length(DATA)))
+    j <-.SOCK_SEND(WS$socket,.frame(length(DATA)))
+    if(j<0) {
+      websocket_close(WS)
+      return(j)
+    }
     return(.SOCK_SEND(WS$socket, DATA))
   }
-  .SOCK_SEND(WS$socket,raw(1))
+  j <- .SOCK_SEND(WS$socket,raw(1))
+  if(j<0) {
+    websocket_close(WS)
+    return(j)
+  }
   .SOCK_SEND(WS$socket,DATA)
   .SOCK_SEND(WS$socket,packBits(intToBits(255))[1])
 }
 
 `websocket_broadcast` <- function(DATA, server)
 {
-  lapply(j$client_sockets, function(x) websocket_write(DATA,x))
+  lapply(server$client_sockets, function(x) websocket_write(DATA,x))
 }
 
 `set_callback` <- function(id, f, envir) assign(id, f, envir=envir)
