@@ -4,9 +4,8 @@
 \docType{package}
 \title{R/Websockets Interface}
 \description{
-The HTML 5 Websocket API defines lightweight socket-like communication protocol.
-The websockets package is a simple and portable Websocket implementation
-for R.
+The websockets package is a native HTML 5 WebSocket implementation for R
+supporting most IETF draft protocols.
 }
 \details{
 The R/Websockets interface provides exposes the basic HTML 5 Websocket API
@@ -16,7 +15,7 @@ web pages without going through server middleware layers.
 The basic procedure for initializing the R/Websockets interface is:
 \enumerate{
 \item Load the library.
-\item Initialize with \code{createContext}.
+\item Initialize with \code{create_server}.
 \item Define desired callback functions to respond to events with \code{setCallback}.
 \item Service events with \code{service}.
 }

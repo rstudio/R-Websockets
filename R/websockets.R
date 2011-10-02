@@ -1,15 +1,11 @@
 `websocket_write` <- function(DATA, WS)
 {
   v <- WS$wsinfo$v
+# Give up silently. I supressed the warning since broadcast might
+# easily hit a non-websocket client (say, a web page request).
   if(is.null(v)) {
-# Perhaps WS is a nested list, try to unlist?
-    WS <- WS[[1]]
-    if(length(WS)>1) v <- WS$wsinfo$v
-# Give up.
-    if(is.null(v)) {
 #      warning("Invalid websocket")
       return(invisible())
-    }
   }
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")

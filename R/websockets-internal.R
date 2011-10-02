@@ -152,7 +152,7 @@
 {
   ff = packBits(intToBits(255)[1:8])
   if(data[1]==ff) return(FALSE)
-  if(data[length(data)] != ff) warn("End of message missing")
+  if(data[length(data)] != ff) warning("End of message missing")
   return(data[2:(length(data)-1)])
 }
 

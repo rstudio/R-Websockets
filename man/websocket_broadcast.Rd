@@ -4,23 +4,20 @@
 websocket_broadcast
 }
 \description{
-Invoke a send to all connected websockets.
+Write data to all websocket clients associated with one websocket server.
 }
 \usage{
-websocket_broadcast(DATA)
+websocket_broadcast(DATA, server)
 }
 \arguments{
-  \item{DATA}{A character string or RAW vector to broadcast.
-}
+  \item{DATA}{A character string or RAW vector to broadcast.  }
+  \item{server}{A websocket server environment returned by \code{create_server}.}
 }
 \details{
 The HTML 5 Websocket API emulates a connection-oriented socket without
 a true broadcast capability. The \code{websocket_broadcast} function
-emulates a broadcast by triggering a broadcast event from every
-connected client with the DATA payload. A broadcast is emulated
-by responding to each event
-with a \code{broadcast} callback function and transmitting the
-DATA payload.
+emulates a broadcast by sending the DATA payload to each connected client
+in a loop.
 }
 \value{
 The number of bytes sent is returned when successful (otherwise an

@@ -30,7 +30,7 @@ function must have three arguments:
 \item \code{DATA}  A RAW vector that holds any incoming data associated with the
 event, for example from broadcast or receive.
 \item \code{WS}   The websocket file descriptor.
-\item \code{COOKIE} DEPRECATED: this parameter will disappear in the next version.
+\item \code{COOKIE} NO LONGER SUPPORTED: this parameter has been dropped as of package version 1.1.0.
 The \code{closed} callback is fired whenever a websocket client socket is closed.
 The \code{receive} callback occurs when data is received on a client websocket.
 The \code{established} callback occurs when a new websocket client socket connection

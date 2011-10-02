@@ -71,28 +71,29 @@ blewis@illposed.net}
 
 \section{Introduction}
 
-The {\tt websockets} package is an HTML 5 Websocket implementation for R.
-The {\tt websockets} package is especially well-suited to lightweight
+The {\tt websockets} package is a native HTML 5 Websocket implementation for R
+that supports most of the draft IETF protocols in use.
+The {\tt websockets} package is especially well-suited to light weight
 interaction between R and web scripting languages like Javascript.
 Multiple simultaneous websocket connections are supported.
 
-By ``lightweight'' we mean that the library has few external dependencies and
+By ``light weight'' we mean that the library has few external dependencies and
 is easily portable. More significantly, {\tt websockets} lets Javascript and
 other scripts embedded in web pages directly interact with R, bypassing
 traditional middleware layers like .NET, Java, and web servers normally used
 for such interaction.
 
 The HTML 5 Websocket API is a modern socket-like communication protocol for the
-web.  Note that the HTML 5 Websocket API is still under development and may
-change.  Some browsers may not enable Websockets by default (including recent
-versions of Firefox), but there are usually simple methods to enable the API.
-Despite its developmental status, the API is presently widely supported: most
-recent browsers support it and there are many available langauge
+web.  Note that the HTML 5 Websocket API is still under development and changes
+frequently.  Some browsers may not enable Websockets by default (including
+recent versions of Firefox), but there are usually simple methods to enable the
+API.  Despite its developmental status, the API is presently widely supported:
+most recent browsers support it and there are many available langauge
 implementations.
 
 \section{Using {\tt websockets}, step by step}
 
-The {\tt websockets} library may be viewed as a server that can initiate and
+The {\tt websockets} package may be viewed as a server that can initiate and
 respond to HTML 5 websocket and HTTP events over a network connection
 (Websockets are an extension of standard HTTP). The library is intentionally
 somewhat simple and tries to implement most important functions of the
@@ -101,11 +102,10 @@ interface in the R language.
 All R/Websocket applications use the following basic recpie:
 \begin{enumerate}
 \item Load the library.
-\item Initialize a websocket context with {\tt createContext}.
+\item Initialize a websocket server with {\tt create\_server}.
 \item Set callback functions that will respond to desired events.
-\item Accept requests from connections (e.g., Javascript code).
-\item Service the socket interface with {\tt service}, often in an event loop.
-\item Delete the context environment when done.
+\item Service the server's socket interface with {\tt service}, often in an event loop.
+\item Shutdown the server and delete the server environment when done.
 \end{enumerate}
 We outline the steps below.
 
@@ -113,18 +113,22 @@ We outline the steps below.
 \begin{lstlisting}
 library('websockets')
 \end{lstlisting}
-The {\tt websockets} library suggests the {\tt RJSONIO} library be installed,
+The library depends on the {\tt caTools} and a recent version of the 
+{\tt digest} package.  It suggests that the {\tt RJSONIO} library be installed,
 as it is quite useful to have available when interacting with Javascript.
 
-\subsection{Initialize a websocket context with {\tt createContext}}
+\subsection{Initialize a websocket server with {\tt create\_server}}
 The R/Websocket service is initialized by a call to the
-{\tt createContext} function. The function takes 2 arguments, a network port
-to listen on, and an optional file name of a file to service standard
-HTTP requests. The function returns an environment, into
-which so-called ``callback'' functions may be assigned that will respond
+{\tt create\_server} function. (The initialization method called
+{\tt createContext} from older versions of the package is still supported.
+The function takes 2 arguments, a network port
+to listen on, and an optional function closure to service standard
+HTTP requests. The {\tt create\_server} function returns an environment
+that stores data associated with the newly created server.
+So-called ``callback'' functions may be assigned that respond
 to websocket events. Here is an example:
 \begin{lstlisting}
-context = createContext()
+w = create\_server()
 \end{lstlisting}
 
 HTML 5 Websockets may be be used directly by Javascript embedded in arbitrary
