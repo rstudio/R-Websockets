@@ -136,9 +136,9 @@ f = function(DATA,WS,...)
 {
   d = tryCatch(rawToChar(DATA),error=function(e) "")
   if(nrow(Words)>0) {
-    Words <<- wmerge(Words,parse(d))
+    Words <<-  tryCatch(wmerge(Words,parse(d)),error=function(e) Words)
   }
-  x = paste("<b>CHAT","WebSocket ",WS$socket," says: </b>",d,sep="")
+  x = paste("CHAT","<b>WebSocket ",WS$socket," says: </b>",d,sep="")
   websocket_broadcast(paste(x),WS$server)
 }
 set_callback("receive",f,w)
