@@ -148,14 +148,19 @@
 
 # Returns raw message (could be NULL) or FALSE if the client wants
 # to close the connection.
+# XXX XXX Rapid client messaging may result in combined frames in one payload.
+# XXX XXX This function currently drops extra frames, losing the data.
+# XXX XXX Fix this to properly handle all frames.
 .v00_unframe = function(data)
 {
-  ff = packBits(intToBits(255)[1:8])
+  ff = as.raw(255)
   if(data[1]==ff) return(FALSE)
+  eof = which(data==ff)
+  if(length(eof)<1) return(FALSE)
+  data = data[1:eof[1]]
   if(data[length(data)] != ff) warning("End of message missing")
   return(data[2:(length(data)-1)])
 }
-
 
 # Parse a frame header, data must be a raw vector for now, but external
 # pointer will be supported soon (external pointer messages can be unmasked
@@ -211,7 +216,11 @@
   }
   if(length(data) < frame$offset || is.null(frame$key)) 
     return(list(header=frame,data=c()))
-  list(header=frame,data=.MASK(data[frame$offset:length(data)],frame$key))
+#  list(header=frame,data=.MASK(data[frame$offset:length(data)],frame$key))
+# XXX Check if multiple frames packed into payload and handle this!
+# XXX XXX XXX XXX
+# Right now incoming data frames may be dropped!
+  list(header=frame,data=.MASK(data[frame$offset:(frame$len + frame$offset - 1)],frame$key))
 }
 
 `.add_client` <- function(socket, server)

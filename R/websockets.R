@@ -175,6 +175,9 @@
           next
         }
         v <- J$wsinfo$v
+# XXX OK, high incoming data rates can result in multiple frames
+# combined into one payload.
+# XXX handle this...
         if(v<4) {
           server$receive(WS=J, DATA=.v00_unframe(x), COOKIE=NULL)
         }

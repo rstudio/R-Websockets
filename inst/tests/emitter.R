@@ -22,21 +22,12 @@ try {
 }
 catch(ex) {document.getElementById("chat").innerHTML = "Error: " + ex;}
 
-spigot = function()
-{
-  socket.send(j + " ");
-  j = j + 1;
-  console.log(j);
-  setTimeout("spigot();", 50);
-}
-
 window.onload = function(){ 
   document.getElementById("chat").innerHTML = "Starting...";
-  setTimeout("spigot();", 1000);
 }
 </script>
 
-<h2>Test: Client rapidly sends messages to server who echoes them back.</h2>
+<h2>Test: Server rapidly broadcasts short messages.</h2>
 <table><tr>
 <td id="statustd">
 <div id="wsdi_status"> Connection not initialized </div>
@@ -52,12 +43,14 @@ w = createContext(webpage=static_text_service(htmldata))
 f = function(DATA,WS,...)
 {
   d = tryCatch(rawToChar(DATA),error=function(e) "")
-cat("received ",d,"\n")
   x = paste("<b>WebSocket ",WS$socket," says: </b>",d,sep="")
   websocket_write(x,WS)
 }
 set_callback("receive",f,w)
 cat("Direct your local web browser to http://localhost:7681\n")
+j = 1
 while(TRUE){
-  service(w, timeout=1000L)
+  service(w, timeout=10L)
+  websocket_broadcast(paste(j),w)
+  j = j + 1
 }
