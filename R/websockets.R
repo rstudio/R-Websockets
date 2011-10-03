@@ -53,6 +53,7 @@
       file_content <<- paste(readLines(f),collapse="\n")
       close(f)
     }
+    if(is.null(header$RESOURCE)) return(.http_400(socket))
     if(header$RESOURCE == "/favicon.ico") {
       .http_200(socket,"image/x-icon",.html5ico)
     }
@@ -67,6 +68,7 @@
 `static_text_service` <- function(text)
 {
   function(socket, header) {
+    if(is.null(header$RESOURCE)) return(.http_400(socket))
     if(header$RESOURCE == "/favicon.ico") {
       .http_200(socket,"image/x-icon",.html5ico)
     }
@@ -168,7 +170,7 @@
         next
       }
       h <- .parse_header(x)
-      if(is.null(h)) {
+      if(is.null(h) && !is.null(J$wsinfo$v)) {
 # Not a GET request, assume an incoming websocket payload.
         if(!is.function(server$receive)){
 # Burn payload, nothing to do with it...

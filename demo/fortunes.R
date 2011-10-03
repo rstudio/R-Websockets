@@ -81,9 +81,10 @@ function checkKey(evt)
 </td></tr></table>
 <hr />
 <p>
-This is a simple WebSocket chat server. Words typed in the small text
-box will appear in the chat history box in all connected clients after
-pressing ENTER. The R WebSocket server periodically emits phrases from the R 
+This is a simple WebSocket chat server written in R.
+Words typed in the upper small text
+box will appear to all connected clients in the lower chat history box after
+pressing ENTER. The R WebSocket server also periodically emits phrases from the R 
 <a targe="_blank" href="http://cran.r-project.org/web/packages/fortunes/"><b>fortunes</b></a>
 package. A word cloud showing words in the chat history
 is also periodically updated (limited to a 
@@ -146,17 +147,19 @@ f = function(DATA,WS,...)
 }
 set_callback("receive",f,w)
 
-j = 0
 tf = tempfile()
 Words = data.frame()
 
 cat("Direct your local web browser to http://localhost:7681\n")
 
+j = 1
+k = round(runif(1)*20 + 5)
 while(TRUE){
-  service(w, timeout=2500L)
+  service(w, timeout=1000L)
   j = j + 1
-  if(j %% 5 == 0) {
+  if(j %% k == 0) {
     j = 0
+    k = round(runif(1)*20 + 5)
     d = paste(fortune()[1],collapse=" ")
     low = ifelse(nrow(Words)>1000,2,0)
 # I don't like ifelse in R, it's not what I expect:
@@ -165,7 +168,7 @@ while(TRUE){
     else Words = wmerge(Words,parse(d),low=low)
     x = paste("CHAT","<b>R fortune says: </b>",d,sep="")
     websocket_broadcast(x,w)
-    min.freq = min(max(Words[,2]),1)
+    min.freq = min(max(Words[,2]),2)
     jpeg(file=tf, width=600,height=600,quality=100)
     devAskNewPage(ask=FALSE)
     wordcloud(Words[,1],Words[,2],vfont=c("serif","bold"),

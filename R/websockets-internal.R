@@ -93,12 +93,16 @@
   v1 = num1/s1
   v2 = num2/s2
   n = length(cli_header$raw)
-  key3 = cli_header$raw[(n-7):n]
+  pos = grepRaw(charToRaw("\r\n\r\n"),cli_header$raw,all=TRUE)
+  if(length(pos)<1) return(c())
+  if(length(pos)>1) pos=pos[length(pos)]
+  if(length(cli_header$raw)< pos+11) return(c())
+  key3 = cli_header$raw[(pos+4):(pos+11)]
   r1 = packBits(.numToBits(v1,32))[4:1]
   r2 = packBits(.numToBits(v2,32))[4:1]
   val = c(r1,r2,key3)
   hash = digest(val,algo="md5",serialize=FALSE,raw=TRUE)
-  resp = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+  resp = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\n"
   resp = paste(resp,"Sec-WebSocket-Origin: ",origin,"\r\n",sep="")
   resp = paste(resp,"Sec-WebSocket-Location: ",location,"\r\n",sep="")
   resp = paste(resp,"Sec-WebSocket-Protocol: ",prot,"\r\n\r\n",sep="")
@@ -244,6 +248,11 @@
   if(exists("closed", envir=server))
     server$closed(socket, DATA=NULL, COOKIE=NULL)
   j
+}
+
+.http_400 = function(socket)
+{
+  .SOCK_SEND(socket,charToRaw("HTTP/1.1 400 BAD REQUEST\r\n\r\n"))
 }
 
 # Generic, very basic 200 response with web page
