@@ -71,33 +71,26 @@ blewis@illposed.net}
 
 \section{Introduction}
 
-The {\tt websockets} package is a native HTML 5 Websocket implementation for R
-that supports most of the draft IETF protocols in use by web browsers.
-The {\tt websockets} package is especially well-suited to light weight
-interaction between R and web scripting languages like Javascript.
-Multiple simultaneous websocket connections are supported.
+The HTML 5 websocket API is a modern socket-like communication protocol for the
+web. The {\tt websockets} package is a native websocket implementation
+for R that supports most of the draft IETF protocols in use by web browsers.
+The {\tt websockets} package is especially well-suited to interaction between R
+and web scripting languages like Javascript.  Multiple simultaneous websocket
+server and client connections are supported.
 
-By ``light weight'' we mean that the library has few external dependencies and,
-written mostly in R, is easily portable.  More significantly, {\tt websockets}
-lets Javascript and other scripts embedded in web pages directly interact with
-R, bypassing traditional middleware layers like .NET, Java, and web servers
-normally used for such interaction.
+The library has few external dependencies and, written mostly in R, is easily
+portable.  More significantly, {\tt websockets} lets Javascript and other
+scripts embedded in web pages directly interact with R, bypassing traditional
+middleware layers like .NET, Java, and web servers normally used for such
+interaction. In some cases, websockets may make much more efficient use of
+networks than Ajax-like schemes for interacting with clients over web protocls.
 
-The HTML 5 Websocket API is a modern socket-like communication protocol for the
-web.  Note that the HTML 5 Websocket API is still under development and changes
-frequently.  Some browsers may not enable Websockets by default (including
-recent versions of Firefox), but there are usually simple methods to enable the
-API.  Despite its developmental status, the API is presently widely supported:
-most recent browsers support it and there are many available langauge
-implementations.
-
-\section{Using {\tt websockets}, step by step}
+\section{Using {\tt websockets} as a server, step by step}
 
 The {\tt websockets} package includes a server function that can initiate and
-respond to HTML 5 websocket and HTTP events over a network connection
+respond to websocket and HTTP events over a network connection
 (websockets are an extension of standard HTTP).
-
-All R/Websocket server applications use the following basic recpie:
+All R/Websocket server applications share the following basic recpie:
 \begin{enumerate}
 \item Load the library.
 \item Initialize a websocket server with {\tt create\_server}.
@@ -118,94 +111,85 @@ as it is quite useful to have available when interacting with Javascript.
 \subsection{Initialize a websocket server with {\tt create\_server}}
 The R/Websocket service is initialized by a call to the
 {\tt create\_server} function. (The initialization method called
-{\tt createContext} from older versions of the package is still supported.
-The function takes 2 arguments, a network port
+{\tt createContext} from older versions of the package is still supported.)
+The function takes two arguments, a network port
 to listen on, and an optional function closure to service standard
-HTTP requests. The {\tt create\_server} function returns an environment
+HTTP requests (described in greater detail below).
+The {\tt create\_server} function returns an environment
 that stores data associated with the newly created server.
-So-called ``callback'' functions may be assigned that respond
-to websocket events. Here is an example:
+``Callback'' functions may be assigned that respond
+to websocket events. Here is an example that creates a websocket server
+on the default port of 7681:
 \begin{lstlisting}
-w = create\_server()
+server = create_server()
 \end{lstlisting}
 
-HTML 5 Websockets may be be used directly by Javascript embedded in arbitrary
-web pages. The {\tt websockets} library can respond to websocket requests
-on its port that are not associated with any local HTML web page. For
-an example of this, see the package demo available from {\tt demo('json.R')}.
-
-For convenience, the {\tt websockets} library includes the
-ability to serve an HTML file to incoming HTTP requests on its port.
-For example, the basic package demo available from {\tt demo('websockets')}
-serves clients the file {\tt basic.html} located in the package installation
-path. However, serving HTML web pages is not the primary function of the
-{\tt websockets} library and there are many other excellent alternatives
-for that available to R.
+The websocket server will respond directly to any websocket client request.
+For convenience, the server may optionally also service basic HTML reuests.  For
+example, the basic package demo available from {\tt demo('websockets')} serves
+clients the file {\tt basic.html} located in the package installation path.
+However, serving HTML web pages is not the primary function of the {\tt
+websockets} library--see the
+\href{http://cran.r-project.org/web/packages/Rook/}{Rook} package for that. 
 
 \subsection{Set callback functions to respond to events}
-Clients may connect to the websocket service immediately after the context
-is initialized. Nothing interesting will happen however until callback
-functions are defined to respond to events.
+Clients may connect to the websocket service immediately after the server is
+initialized. The server may write data to or close client connections at any
+time.  However, one must define functions to respond to incoming client events.
 
-The {\tt websockets} package presently supports the following events:
+A server supports the following incoming events:
 \begin{enumerate}
-\item[] {\tt established}: Occurs when a websocket connection is
+\item[] {\tt established}: Occurs when a websocket client connection is
 successfully negotiated.
-\item[] {\tt closed}: Occurs when a client closes its websocket connection.
+\item[] {\tt closed}: Occurs when a client websocket connection has been closed.
 \item[] {\tt receive}: Occurs when data is received from a connection.
-\item[] {\tt broadcast}: Occurs when data is received from a broadcast event.
 \end{enumerate}
 R functions may be defined to handle some, all, or none of the above event
 types. Such functions are termed ``callbacks.''
 
-The {\tt setCallback} function may be used to define a callback function in
-the websocket context environment returned by {\tt createContext}. (It
+The {\tt set\_callback} function may be used to define a callback function in
+the server environment returned by {\tt create\_server}. (It
 simply assigns the functions in that environment.) A callback function
-must take precisely 3 arguments that are filled in by the library
+must take precisely 3 parameters that are filled in by the library
 with values corresponding to an event when invoking a callback function.
-The values are:
-\begin{itemize}
-\item[] {\tt DATA}: A RAW vector that holds any incoming data associated
+The required parameters are:
+\begin{enumerate}
+\item {\tt DATA}: A RAW vector that holds any incoming data associated
 with the event. It may be of length zero if the event does not have any
 data to report.
-\item[] {\tt WS}: A pointer reference to the websocket connection associated
-with the event.
-\item[] {\tt COOKIE}: A pointer to a data 'cookie' associated with the
- websocket client connection.
-\end{itemize}
-The arguments can be named arbitrarily, but there must be three.
+\item {\tt WS}: The websocket client associated with the event, represented
+as an R list.
+\item {\tt ...}: Presently unused.
+\end{enumerate}
+The parameters can be arbitrarily named, but there must be three.
 
-The example function below assigns a random number (in character form)
-to the cookie of a new client connection after a connection is established, and
-then sends a message to the connection:
+The example function below sends a message to each newly-established
+connection:
 \begin{lstlisting}
-f = function(DATA, WS, COOKIE) {
-  x = runif(1)
-  setCookie(COOKIE, paste(x))
-  websocket_write(paste("Connection established. Your cookie value is",x), WS)
+f = function(DATA, WS, ...) {
+  websocket_write("Hello there!", WS)
 }
-setCallback("established", f, context)
+set_callback("established", f, server)
 \end{lstlisting}
 
 Here is an example function callback that receives data from a client
 connection and simply echoes it back:
 \begin{lstlisting}
-f = function(DATA, WS, COOKIE) {
+g = function(DATA, WS, ...) {
   websocket_write(DATA, WS)
 }
-setCallback("receive", f, context)
+setCallback("receive", g, server)
 \end{lstlisting}
 
 \subsection{Accept requests from web clients}
 Javascript and other web script clients can very easily interact with the
 R {\tt websockets} library directly from most browsers. The listing below
-presents a very basic javascript example, see the {\tt basic.html} file in 
-the package installation path, or the
-{\tt http://illposed.net/rwebsockjson.html} file for more complete examples.
+presents a very basic example--see the demo scripts in the
+the package installation path for more complete examples.
 \begin{lstlisting}
 <html><body>
 <script>
-socket = new WebSocket("ws://localhost:7681", "R");
+socket = new WebSocket("ws://localhost:7681", "chat");
 try {
   socket.onmessage = function got_packet(msg) {
     document.getElementById("output").textContent = msg.data;
@@ -215,9 +199,9 @@ catch(ex) {document.getElementById("output").textContent = "Error: " + ex;}
 <div id="output"> SOCKET DATA APPEARS HERE </div>
 </body></html>
 \end{lstlisting}
-{\bf Note, in particular, that the {\tt websockets} package defines a
-single protocol called ``R.'' Future versions of the package will
-admit multiple protocols.}
+{\bf Note: The {\tt websockets} package presently ignores the
+sub-protocol (``chat'' in the above example). Future versions of the
+package may require specific sub-protocols.}
 
 \subsection{Service the socket interface with {\tt service}}
 
@@ -225,46 +209,96 @@ Websocket events are placed in a queue. The {\tt service} function
 processes events in the queue on a first-come, first-served basis.
 The {\tt service} function processes each event by invoking the
 appropriate callback function.
-It returns without blocking if there are no events to service. Events
-may be processed indefinitely by evaluating the {\tt service} function
+It returns after a configurable time out if there are no events to service.
+Events may be processed indefinitely by evaluating the {\tt service} function
 in a loop, for example:
 \begin{lstlisting}
 while(TRUE)
 {
-  service(context)
-  Sys.sleep(0.05)
+  service(server)
 }
 \end{lstlisting}
-Although this is a polling loop, the {\tt Sys.sleep} function prevents
-the R session from spinning and consuming lots of CPU time. A blocking
-version of {\tt service} is not presently available, but this simple
-approach works surprisingly well.
+The {\tt service} function timeout value
+prevents the R session from spinning and consuming lots of CPU time. See the
+{\tt service} help page for more information.
 
-\subsection{Delete the context environment when done}
+\subsection{Sending data to clients}
+The {\tt websocket\_write} and {\tt websocket\_broadcast} functions may
+be used to send data to clients. The {\tt websocket\_broadcast} function
+emulates a broadcast by sending data in a loop to all connected websocket
+clients associated with the specified server. 
 
-Underlying low-level data pointers used by the library are automatically
-de-allocated when the environment returned by {\tt createContext} is
-deleted, and the garbage collector has run.
+The {\tt websocket\_write} function may be used at any time to send data
+to a specific websocket client. Each websocket server environment returned
+by the {\tt create\_server} function maintains a list of connected client
+sockets in the variable {\tt client\_sockets}. Each client socket is in
+turn represented by an R list. The following example assumes that the
+{\tt server} environment has been initialized and contains a single
+client:
 \begin{lstlisting}
-rm(context)
-gc()
+websocket_write("Hello", server$client_sockets[[1]])
 \end{lstlisting}
-A new context may be created any time after this point. We are conisdering
-forcing the garbage collector to run automatically when a context
-is deleted, but are not sure about the implications of doing that yet.
+{\bf Note the use of the double bracket indexing operator to select a single
+list element from the {\tt client\_sockets} list.}
 
-\section{Tricks and miscellaneous notes}
+\subsection{Close the server when done}
+Servers should be closed when done as follows:
+\begin{lstlisting}
+websocket_close(server)
+\end{lstlisting}
+
+\subsection{HTTP convenience functions}
+
+The {\tt websockets} package includes two convenience function closures for
+servicing basic HTTP requests: {\tt static\_file\_service} and {\tt
+static\_text\_service}. The functions take either a file name or text string
+that contains an HTML web page, respectively, and issue a well-formed HTTP 200
+response to the requesting client. They are intended to be used in the
+{\tt webpage} argument to the {\tt create\_server} function.
+The following example defines a basic web page in a string variable:
+\begin{lstlisting}
+content='<html><body>
+  <script>
+  socket = new WebSocket("ws://localhost:7681", "chat");
+  try {
+    socket.onmessage = function got_packet(msg) {
+      document.getElementById("output").textContent = msg.data;
+    } 
+  catch(ex) {document.getElementById("output").textContent = "Error: " + ex;}
+  </script>
+  <div id="output"> SOCKET DATA APPEARS HERE </div>
+  </body></html>
+'
+
+server = create_server(webpage=static_text_service(content))
+\end{lstlisting}
+
+The web page text will be issued to any client making an HTTP GET request.  To
+serve content from files instead, use the {\tt static\_file\_service} function.
+Additionally, the {\tt static\_file\_service} function checks to see if the
+file has been updated and always uses a fresh version.
+
+Note that both convenience functions mostly ignore the GET RESOURCE and 
+all other GET request parameters. The always only return the specified HTML
+content. POST requests are always ignored by the websocket server.
+Users are free to define their own function closures to use
+instead, which may be more full-featured. Use the existing functions
+as a guide. If you really need a full-featured HTTP service,
+we reccommend using the 
+\href{http://cran.r-project.org/web/packages/Rook}{Rook} package
+instead.
+
+
+\section{Using {\tt websockets} as a client, step by step}
+WRITE ME!
+
+\section{Tips and miscellaneous notes}
 We present a few more advanced and other miscellaneous notes in this
 section.
 \subsection{Binary data}
-At the time of this writing (June, 2011), Javascript websocket clients
-do not support binary data.
-It is possible to exchange binary data with some websocket clients however,
-and the default
-I/O type on the R side of the library is the R {\tt raw} type. For
-convenience, R character variables are cast to {\tt raw} by the library
-automatically, but all other types require manual serialization to
-{\tt raw} prior to transmission.
+Binary data is supported by IETF websocket protocol versions greater than
+00. The {\tt websockets} package supports the older 00 protocol with
+ASCII-only data, as well as binary data transfers with newer clients.
 
 JSON is probably a good choice to use when interacting with Javascript
 and the data size is not too large. The suggested {\tt RJSONIO} package
@@ -272,70 +306,5 @@ helps map many native R objects to JSON and vice versa, greatly
 facilitating interaction between R and Javascript. But, JSON data is
 transferred as characters, which may incur performance and in some cases
 numeric issues.
-
-\subsection{Broadcasting}
-The HTML 5 Websocket API is a peer to peer, connection oriented protocol
-and does not specifically include a way to broadcast data across multiple
-connections.
-
-The {\tt websockets} library emulates broadcasting with a trick,
-the {\tt websocket\_broadcast} function. The {\tt websocket\_broadcast}
-function takes a single DATA argument (without specifying a websocket
-connection). When invoked, it induces the {\tt broadcast} callback
-with the specified DATA payload once for each connected client websocket
-on the server. The {\tt broadcast} callback may then use
-{\tt websocket\_write} to send out the DATA payload to each client websocket
-in succession.
-
-Using this trick, the {\tt websockets} library can quickly send the
-same DATA to all connected websockets.
-
-\subsection{Pushing data to a connection}
-
-The {\tt websocket\_write} function may be called at any time to write
-data to a specific websocket connection. However, {\tt websocket\_write}
-requires a pointer to the connection which is usually only available
-from inside a callback function.
-
-There are at least two viable approaches to writing data to a connection
-from the server to a client without requiring the client initiate the
-transfer.
-\begin{enumerate}
-\item Maintain a list of active client websocket connections by adding to
-the list in the {\tt establish} function callback, and removing from the
-list in the {\tt close} function callback. This will further require that
-the connections are uniquely identifiable by setting an appropriate data
-cookie. In this way, {\tt websocket\_write} may be called at any time to
-send data to connetions in the active list.
-\item Use the {\tt websocket\_broadcast} function as outlined in the last
-section.
-\end{enumerate}
-The {\tt websocket\_broadcast} function is simple, but writes the same
-data to all the clients. Use the other approach if you need to push data
-to multiple clients.
-
-
-\section{Interacting effectively with Javascript}
-
-Javascript has excellent HTML 5 Websocket support. The suggested
-{\tt RJSONIO} package provides simple methods for
-exchanging data between R and Javascript using JSON, suitable for
-smallish data sizes.
-
-The Javascript available in the HTML page
-{\tt http://illposed.net/rwebsockjson.html} and the R code available from
-the {\tt demo('json')} demo illustrate using {\tt websockets}, JSON and
-flotr to implement basic dynamic R web plots.
-
-\section{Up next...}
-We've left out lots of the Websocket API features. Some of them that we
-plan on implementing next include:
-\begin{itemize}
-\item SSL encrypted communication.
-\item Multiple simultaneous protocol support.
-\item A blocking {\tt service} function?
-\item Smarter object de-allocation and clean up
-\end{itemize}
-
 
 \end{document}
