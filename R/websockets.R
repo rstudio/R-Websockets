@@ -147,15 +147,23 @@
       .add_client(j,server)
     }
     else{
+# j holds just the socket file descriptor, or a negated descriptor
+# indicating an error condition. Retrieve the client socket from the server
+# environment in J. XXX Improve this with a hashed lookup.
+      J <- server$client_sockets[
+           unlist(lapply(server$client_sockets,
+                    function(x) x$socket)) == abs(j)][[1]]
+      if(j<0) {
+# Poll reports an error condition for this socket. Close it.
+        websocket_close(J)
+        next
+      }
 # A connected client is sending something.
 # Note: Presently, program copies into a raw vector. Will also
 # soon support in place recv via external pointers.
       x <- .SOCK_RECV(j,max_buffer_size=getOption("websockets_max_buffer_size"))
-# j holds just the socket file descriptor. Retrieve the client socket
-# from the server environment in J. XXX Improve this with a hashed lookup.
-      J <- server$client_sockets[
-           unlist(lapply(server$client_sockets,function(x) x$socket)) == j][[1]]
       if(length(x)<1) {
+# Can't have an empty transmission, close the socket.
         websocket_close(J)
         next
       }

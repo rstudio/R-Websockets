@@ -72,16 +72,16 @@ blewis@illposed.net}
 \section{Introduction}
 
 The {\tt websockets} package is a native HTML 5 Websocket implementation for R
-that supports most of the draft IETF protocols in use.
+that supports most of the draft IETF protocols in use by web browsers.
 The {\tt websockets} package is especially well-suited to light weight
 interaction between R and web scripting languages like Javascript.
 Multiple simultaneous websocket connections are supported.
 
-By ``light weight'' we mean that the library has few external dependencies and
-is easily portable. More significantly, {\tt websockets} lets Javascript and
-other scripts embedded in web pages directly interact with R, bypassing
-traditional middleware layers like .NET, Java, and web servers normally used
-for such interaction.
+By ``light weight'' we mean that the library has few external dependencies and,
+written mostly in R, is easily portable.  More significantly, {\tt websockets}
+lets Javascript and other scripts embedded in web pages directly interact with
+R, bypassing traditional middleware layers like .NET, Java, and web servers
+normally used for such interaction.
 
 The HTML 5 Websocket API is a modern socket-like communication protocol for the
 web.  Note that the HTML 5 Websocket API is still under development and changes
@@ -93,13 +93,11 @@ implementations.
 
 \section{Using {\tt websockets}, step by step}
 
-The {\tt websockets} package may be viewed as a server that can initiate and
+The {\tt websockets} package includes a server function that can initiate and
 respond to HTML 5 websocket and HTTP events over a network connection
-(Websockets are an extension of standard HTTP). The library is intentionally
-somewhat simple and tries to implement most important functions of the
-interface in the R language.
+(websockets are an extension of standard HTTP).
 
-All R/Websocket applications use the following basic recpie:
+All R/Websocket server applications use the following basic recpie:
 \begin{enumerate}
 \item Load the library.
 \item Initialize a websocket server with {\tt create\_server}.
@@ -107,7 +105,7 @@ All R/Websocket applications use the following basic recpie:
 \item Service the server's socket interface with {\tt service}, often in an event loop.
 \item Shutdown the server and delete the server environment when done.
 \end{enumerate}
-We outline the steps below.
+We outline the steps with examples below.
 
 \subsection{Load the library}
 \begin{lstlisting}

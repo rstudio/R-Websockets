@@ -3,11 +3,13 @@
 .SOCK_POLLPRI = 2L
 .SOCK_POLLOUT = 4L
 
+# Return vector of sockets matching requested events. Negative
+# socket numbers in returned vector indicates sockets with error
+# conditions.
 .SOCK_POLL = function(fds, timeout=1000L, events=.SOCK_POLLIN)
 {
-  x = .Call('SOCK_POLL', as.integer(fds), as.integer(timeout), as.integer(events),
-         PACKAGE='websockets')
-  fds[x == events]
+  x = .Call('SOCK_POLL', as.integer(fds), as.integer(timeout), as.integer(events), PACKAGE='websockets')
+  c(fds[x == events], -fds[x>4])
 }
 
 .SOCK_CLOSE = function(socket)

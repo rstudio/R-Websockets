@@ -236,16 +236,22 @@ SEXP SOCK_POLL (SEXP FDS, SEXP TIMEOUT, SEXP EVENTS)
   }
   UNPROTECT(1);
   free(pfds);
-  R_CheckUserInterrupt();
   return ans;
 }
 
 SEXP SOCK_SEND(SEXP S, SEXP DATA)
 { 
+  struct pollfd pfds;
+  int h;
   const void *data = (const void *)RAW(DATA);
   size_t len = (size_t)length(DATA);
   int s = INTEGER(S)[0];
-  return ScalarInteger(send(s, data, len, 0));
+  pfds.fd = s;
+  pfds.events = POLLOUT;
+  h = poll(&pfds, 1, 500);
+  if(pfds.events & POLLOUT)
+    return ScalarInteger(send(s, data, len, 0));
+  return ScalarInteger(-1);
 }
 
 SEXP SOCK_RECV(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
