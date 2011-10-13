@@ -78,26 +78,36 @@
   cli_header
 }
 
-# Version 00 handshake
-.v00_resp_101 = function(cli_header)
+# Version 00 handshake, which is amazingly lame
+.v00_resp_101 = function(cli_header, cli_sock)
 {
+  er=charToRaw("HTTP/1.1 400 BAD REQUEST\r\n\r\n")
   prot = cli_header["Sec-WebSocket-Protocol"][[1]]
   origin = cli_header["Origin"]
   location = paste("ws://",cli_header["Host"],"/",sep="")
   key1 = cli_header["Sec-WebSocket-Key1"][[1]]
   key2 = cli_header["Sec-WebSocket-Key2"][[1]]
-  num1 = as.numeric(rawToChar(charToRaw(key1)[gregexpr("[0-9]",text=key1)[[1]]]))
-  num2 = as.numeric(rawToChar(charToRaw(key2)[gregexpr("[0-9]",text=key2)[[1]]]))
+  if(is.null(key1) || is.null(key2)) return(er)
+  if(!is.character(key1) || !is.character(key2)) return(er)
+  num1 = tryCatch(as.numeric(rawToChar(charToRaw(key1)[gregexpr("[0-9]",text=key1)[[1]]])),
+                  error=function(e) return(er))
+  num2 = tryCatch(as.numeric(rawToChar(charToRaw(key2)[gregexpr("[0-9]",text=key2)[[1]]])),
+                  error=function(e) return(er))
   s1 = length(charToRaw(key1)[gregexpr(" ",text=key1)[[1]]])
   s2 = length(charToRaw(key2)[gregexpr(" ",text=key2)[[1]]])
   v1 = num1/s1
   v2 = num2/s2
   n = length(cli_header$raw)
-  pos = grepRaw(charToRaw("\r\n\r\n"),cli_header$raw,all=TRUE)
-  if(length(pos)<1) return(c())
-  if(length(pos)>1) pos=pos[length(pos)]
-  if(length(cli_header$raw)< pos+11) return(c())
-  key3 = cli_header$raw[(pos+4):(pos+11)]
+#  pos = grepRaw(charToRaw("\r\n\r\n"),cli_header$raw,all=TRUE)
+#  if(length(pos)<1) return(charToRaw("HTTP/1.1 400 BAD REQUEST\r\n\r\n"))
+#  if(length(pos)>1) pos=pos[length(pos)]
+#  if(length(cli_header$raw)< pos+11) return(charToRaw("HTTP/1.1 400 BAD REQUEST\r\n\r\n"))
+#  key3 = cli_header$raw[(pos+4):(pos+11)]
+  check = .SOCK_POLL(cli_sock)
+  if(check <1)return(er)
+  key3 = .SOCK_RECV(cli_sock)
+  if(length(key3)<8) return(er)
+  key3 = key3[1:8]
   r1 = packBits(.numToBits(v1,32))[4:1]
   r2 = packBits(.numToBits(v2,32))[4:1]
   val = c(r1,r2,key3)
@@ -146,15 +156,6 @@
 # 2-byte data length
     head2[1:7] = rawToBits(as.raw(126))[1:7]
     rest = packBits(intToBits(len),type="raw")[2:1]
-
-cat("head: ")
-print(head)
-print(packBits(head))
-
-cat("rest: ")
-print(rest)
-print(rawToBits(rest))
-
   }
   c(packBits(head), packBits(head2), rest)
 }

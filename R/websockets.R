@@ -3,7 +3,7 @@
   v <- WS$wsinfo$v
 # Give up silently. I supressed the warning since broadcast might
 # easily hit a non-websocket client (say, a web page request).
-  if(is.null(v)) {
+  if(is.null(v) || is.null(WS$server)) {
 #      warning("Invalid websocket")
       return(invisible())
   }
@@ -191,7 +191,7 @@
           next
         }
 # Negotiate a websocket connection
-        if(v<4) .SOCK_SEND(j,.v00_resp_101(h))
+        if(v<4) .SOCK_SEND(j,.v00_resp_101(h, j))
         else .SOCK_SEND(j,.v04_resp_101(h))
 # Trigger callback for newly-established connections
         if(is.function(server$established))
@@ -233,7 +233,8 @@
 # 2. Create a context environment
 # 3. Connect to the server and establish
 #    websocket or fail.
-`websocket` = function(url,port,subprotocol="chat")
+# Use the same callback functions as with server.
+`websocket` = function(url,port,subprotocol="chat", version=0)
 {
   nonce = as.raw(replicate(16,floor(runif(1)*256)))
   h = paste("GET / HTTP/1.1",sep="")
@@ -245,10 +246,61 @@
   h = paste(h, "Sec-WebSocket-Origin: R", sep="\r\n")
   p = paste("Sec-WebSocket-Protocol:",subprotocol)
   h = paste(h, p, sep="\r\n")
-  k = paste("Sec-WebSocket-Key:",base64encode(nonce))
-  h = paste(h, k, sep="\r\n")
-  h = paste(h, "Sec-WebSocket-Version: 8",sep="\r\n")
-  h = paste(h,"\r\n\r\n")
+  ver = paste("Sec-WebSocket-Version:",version)
+  h = paste(h, ver, sep="\r\n")
+  if(version==0) {
+# This is so dumb.
+    spaces1 = round(runif(1)*12)+1
+    spaces2 = round(runif(1)*12)+1
+    max1 = 4294967295/spaces1
+    max2 = 4294967295/spaces2
+    number1 = round(runif(1)*max1)+1
+    number2 = round(runif(1)*max2)+1
+    product1 = number1 * spaces1
+    product2 = number2 * spaces2
+    key1=strsplit(as.character(product1),"")[[1]]
+    key2=strsplit(as.character(product2),"")[[1]]
+    nchar1 = round(runif(1)*12)+1
+    nchar2 = round(runif(1)*12)+1
+    char1 = sample(c(letters,LETTERS),nchar1,replace=TRUE)
+    char2 = sample(c(letters,LETTERS),nchar2,replace=TRUE)
+    nkey = character(length(key1) + length(char1))
+    idx = sample(length(nkey),length(char1))
+    nkey[idx] = char1
+    nkey[-idx] = key1
+    key1 = nkey
+    nkey = character(length(key2) + length(char2))
+    idx = sample(length(nkey),length(char2))
+    nkey[idx] = char2
+    nkey[-idx] = key2
+    key2 = nkey
+    nsp1 = round(runif(1)*12)+1
+    nsp2 = round(runif(1)*12)+1
+    len = length(key1) + nsp1
+    idx = sample(2:(len - 1), nsp1)
+    nkey = character(len)
+    nkey[idx] = " "
+    nkey[-idx] = key1
+    key1 = paste(nkey,collapse="")
+    len = length(key2) + nsp2
+    idx = sample(2:(len - 1), nsp2)
+    nkey = character(len)
+    nkey[idx] = " "
+    nkey[-idx] = key2
+    key2 = paste(nkey,collapse="")
+    key3 = as.raw(floor(runif(8)*256))
+    k = paste("Sec-WebSocket-Key1:",key1)
+    h = paste(h, k, sep="\r\n")
+    k = paste("Sec-WebSocket-Key2:",key2)
+    h = paste(h, k, sep="\r\n")
+    h = paste(h, "\r\n\r\n", sep="")
+    h = charToRaw(h)
+    h = c(h, key3)
+  } else {
+    k = paste("Sec-WebSocket-Key:",base64encode(nonce))
+    h = paste(h, k, sep="\r\n")
+    h = paste(h,"\r\n\r\n")
+  }
 
   context = createContext(port, webpage=url, server=FALSE)
   s = .SOCK_CONNECT (u, port)
@@ -263,8 +315,13 @@
     stop("Connection timeout")
   }
   x <- .SOCK_RECV_HTTP_HEAD(s)
+  if(length(x)<12) stop("Connection error")
+  if(!all(x[1:12] == charToRaw("HTTP/1.1 101")))
+    stop(paste("Connection error: ",rawToChar(x),sep="\n"))
 # XXX XXX parse for valid connection headers to finish handshake...
+# XXX ADD ME
+# XXX XXX
    context$client_sockets[[as.character(s)]] <- 
-    list(socket=s, wsinfo=list(v=8), server=NULL, new=FALSE)
+    list(socket=s, wsinfo=list(v=version), server=NULL, new=FALSE)
   context
 }

@@ -503,9 +503,10 @@ SEXP SOCK_RECV_FRAME00(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   h = poll(&pfds, 1, 150);
   while(h>0) {
     j = recv(s, &c, 1, 0);
-    if(j<0 || c==0xff) break;
+    if(j<0) break;
     buf[k] = c;
     k++;
+    if(c<0) break;
     if(k>maxbufsize){
       warning("Maxmimum message size exceeded.");
       break;
@@ -552,10 +553,10 @@ SEXP SOCK_RECV_HTTP_HEAD(SEXP S)
     if(j<0) break;
     buf[k] = c;
     k++;
-    if(k>3 && buf[k]=='\n' &&
-              buf[k-1]=='\r' &&
-              buf[k-2]=='\n' &&
-              buf[k-3]=='\r') break;
+    if(k>4 && buf[k-1]==10 &&
+              buf[k-2]==13 &&
+              buf[k-3]==10 &&
+              buf[k-4]==13) break;
     if(k+1 > bufsize) {
       bufsize = bufsize + MBUF;
       buf = (char *)realloc(buf, bufsize);  
