@@ -244,8 +244,9 @@ print(rawToBits(rest))
 {
   cs <- .SOCK_ACCEPT(socket)
   client_sockets = server$client_sockets
-  client_sockets[[length(client_sockets)+1]] =
-    list(socket=cs, wsinfo=NULL, server=server)
+#  client_sockets[[length(client_sockets)+1]] =
+  client_sockets[[as.character(cs)]] = 
+    list(socket=cs, wsinfo=NULL, server=server, new=TRUE)
   assign('client_sockets',client_sockets, envir=server)
   invisible()
 }
@@ -254,7 +255,8 @@ print(rawToBits(rest))
 {
   server <- socket$server
   cs <- socket$server$client_sockets
-  cs <- cs[!(unlist(lapply(cs,function(x) x$socket)) == socket$socket)]
+#  cs <- cs[!(unlist(lapply(cs,function(x) x$socket)) == socket$socket)]
+  cs[[as.character(socket$socket)]] = c()
   j = .SOCK_CLOSE(socket$socket)
   assign('client_sockets',cs, envir=server)
 # Trigger client closed callback

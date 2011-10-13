@@ -542,20 +542,17 @@ SEXP SOCK_RECV_HTTP_HEAD(SEXP S)
     j = recv(s, &c, 1, 0);
     if(j<0) break;
     buf[k] = c;
+    k++;
     if(k>3 && buf[k]=='\n' &&
               buf[k-1]=='\r' &&
               buf[k-2]=='\n' &&
               buf[k-3]=='\r') break;
-    k++;
     if(k+1 > bufsize) {
       bufsize = bufsize + MBUF;
       buf = (char *)realloc(buf, bufsize);  
     }
     h = poll(&pfds, 1, 50);
-    if(h<1) {
-      --k;
-      break;
-    }
+    if(h<1) break;
   }
   PROTECT(ans=allocVector(RAWSXP,k));
   p = (char *)RAW(ans);
