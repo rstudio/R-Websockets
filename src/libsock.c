@@ -11,6 +11,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <poll.h>
 #define INVALID_SOCKET -1
 #endif
@@ -132,6 +133,12 @@ tcpconnect (char *host, int port)
 	  return -1;
 	}
     }
+#ifdef WIN32
+    u_long iMode=1;
+    ioctlsocket(s,FIONBIO,&iMode);
+#else
+    fcntl(s, F_SETFL, O_NONBLOCK);
+#endif
   return s;
 }
 
@@ -254,6 +261,7 @@ SEXP SOCK_SEND(SEXP S, SEXP DATA)
   return ScalarInteger(-1);
 }
 
+/* A generic recv wrapper function */
 SEXP SOCK_RECV(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
 {
   SEXP ans = R_NilValue;
@@ -301,10 +309,9 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
     PROTECT(ans=allocVector(RAWSXP,k));
     p = (char *)RAW(ans);
     memcpy((void *)p, (void *)msg, k);
-    free(msg);
+    free(buf);
     UNPROTECT(1);
   }
-  free(buf);
   return ans;
 }
 
@@ -385,3 +392,175 @@ mingw_poll (struct pollfd *fds, unsigned int nfds, int timo)
   return rc;
 }
 #endif
+
+
+/* Receive exactly one non-00 protocol frame */
+SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
+{
+  SEXP ans = R_NilValue;
+  char *buf, *p;
+  unsigned char h1[2];  // header
+  unsigned char h2[8];  // extended payload length
+  unsigned char h3[2];  // masking key
+  unsigned long long len, l;
+  int mask;
+  struct pollfd pfds;
+  int j, s = INTEGER(S)[0];
+  double maxbufsize = REAL(MAXBUFSIZE)[0];
+  int l2=0, l3=0;
+
+  pfds.fd = s;
+  pfds.events = POLLIN;
+  j = poll(&pfds, 1, 50);
+  if(j<1) return ans;
+  memset(h1,0,2);
+  j = recv(s, h1, 2, 0);
+  if(j<2) return ans;
+  mask = h1[1] & (1 << 8);
+  j = (int)(h1[1] &= ~(1 << 8));
+  if(j==126) {
+    memset(h2,0,8);
+    j = recv(s, h2, 2, 0);
+    if(j<2) return ans;
+    len = 256 * (unsigned int)h2[0] + (unsigned int)h2[1];
+    l2 = 2;
+  } else if (j==127) {
+    memset(h2,0,8);
+    j = recv(s, h2, 8, 0);
+    if(j<8) return ans;
+// XXX should be able to directly cast this, right?  memcpy(&len, h2, 8);
+    len = h2[7];
+    l = h2[6]; l = l << 8; len+=l;
+    l = h2[5]; l = l << 16; len+=l;
+    l = h2[4]; l = l << 24; len+=l;
+    l = h2[3]; l = l << 32; len+=l;
+    l = h2[2]; l = l << 40; len+=l;
+    l = h2[1]; l = l << 48; len+=l;
+    l = h2[0]; l = l << 56; len+=l;
+    l2 = 8;
+  } else len = j;
+  if(len>maxbufsize) {
+    warning("Maxmimum message size exceeded.");
+    len = maxbufsize;
+  }
+  if(mask){
+    memset(h3,0,2);
+    j = recv(s, h3, 2, 0);
+    if(j<2) return ans;
+    l3 = 2;
+  }
+  buf = (char *)malloc(2 + l2 + l3 + len);
+  p = buf;
+  memcpy(p, h1, 2); p+=2;
+  if(l2>0) memcpy(p, h2, l2); p+=l2;
+  if(l3>0) memcpy(p, h3, l3); p+=l3;
+  j = recv(s, p, len, 0);
+  if(j<len) warning("Short read");
+  if(INTEGER(EXT)[0]) {
+/* return a pointer to the recv buffer */
+    ans = R_MakeExternalPtr ((void *)buf, R_NilValue, R_NilValue);
+    R_RegisterCFinalizer (ans, recv_finalize);
+  }
+  else {
+/* Copy to a raw vector */
+    PROTECT(ans=allocVector(RAWSXP,len));
+    p = (char *)RAW(ans);
+    memcpy((void *)p, (void *)buf, len);
+    free(buf);
+    UNPROTECT(1);
+  }
+  return ans;
+}
+
+/* Receive exactly one 00 protocol frame, damned inefficiently.  */
+SEXP SOCK_RECV_FRAME00(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
+{
+  SEXP ans = R_NilValue;
+  char c;
+  char *buf, *p;
+  struct pollfd pfds;
+  int h, j, k, s = INTEGER(S)[0];
+  double maxbufsize = REAL(MAXBUFSIZE)[0];
+  int bufsize = MBUF;
+  buf = (char *)malloc(MBUF);
+  k = 0;
+
+  pfds.fd = s;
+  pfds.events = POLLIN;
+  h = poll(&pfds, 1, 50);
+  for(;;) {
+    j = recv(s, &c, 1, 0);
+    if(j<0 || c==0) break;
+    buf[k] = c;
+    k++;
+    if(k>maxbufsize){
+      warning("Maxmimum message size exceeded.");
+      break;
+    }
+    if(k+1 > bufsize) {
+      bufsize = bufsize + MBUF;
+      buf = (char *)realloc(buf, bufsize);  
+    }
+    h = poll(&pfds, 1, 50);
+    if(h<1) {
+      --k;
+      break;
+    }
+  }
+  if(INTEGER(EXT)[0]) {
+/* return a pointer to the recv buffer */
+    ans = R_MakeExternalPtr ((void *)buf, R_NilValue, R_NilValue);
+    R_RegisterCFinalizer (ans, recv_finalize);
+  }
+  else {
+/* Copy to a raw vector */
+    PROTECT(ans=allocVector(RAWSXP,k));
+    p = (char *)RAW(ans);
+    memcpy((void *)p, (void *)buf, k);
+    free(buf);
+    UNPROTECT(1);
+  }
+  return ans;
+}
+
+/* Receive a message terminated by \r\n\r\n */
+SEXP SOCK_RECV_HTTP_HEAD(SEXP S)
+{
+  SEXP ans = R_NilValue;
+  char c;
+  char *buf, *p;
+  struct pollfd pfds;
+  int h, j, k, s = INTEGER(S)[0];
+  int bufsize = MBUF;
+  buf = (char *)malloc(MBUF);
+  k = 0;
+
+  pfds.fd = s;
+  pfds.events = POLLIN;
+  h = poll(&pfds, 1, 50);
+  for(;;) {
+    j = recv(s, &c, 1, 0);
+    if(j<0) break;
+    buf[k] = c;
+    if(k>3 && buf[k]=='\n' &&
+              buf[k-1]=='\r' &&
+              buf[k-2]=='\n' &&
+              buf[k-3]=='\r') break;
+    k++;
+    if(k+1 > bufsize) {
+      bufsize = bufsize + MBUF;
+      buf = (char *)realloc(buf, bufsize);  
+    }
+    h = poll(&pfds, 1, 50);
+    if(h<1) {
+      --k;
+      break;
+    }
+  }
+  PROTECT(ans=allocVector(RAWSXP,k));
+  p = (char *)RAW(ans);
+  memcpy((void *)p, (void *)buf, k);
+  free(buf);
+  UNPROTECT(1);
+  return ans;
+}

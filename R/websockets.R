@@ -93,12 +93,16 @@
 `createContext` <- function(
       port=7681L,
       webpage=static_file_service(
-        paste(system.file(package='websockets'), "basic.html",sep="//")))
+        paste(system.file(package='websockets'), "basic.html",sep="//")),
+      server=TRUE)
 {
   w <- new.env()
   assign('static', webpage, envir=w)
 # server_socket is the file descriptor associated with this server
-  assign('server_socket', .SOCK_SERVE(port), envir=w)
+  if(server)
+    assign('server_socket', .SOCK_SERVE(port), envir=w)
+  else
+    assign('server_socket', -1L, envir=w)
 # client_sockets is a list of connected clients, each of which is a
 # list with at least the following slots:
 # socket  (file descriptor)
@@ -220,4 +224,54 @@
       }
     }
   }
+}
+
+
+# Create a websocket client context
+# 1. Build a client header.
+# 2. Create a context environment
+# 3. Connect to the server and establish
+#    websocket or fail.
+#GET / HTTP/1.1
+#Upgrade: websocket
+#Connection: Upgrade
+#Host: localhost:7681
+#Sec-WebSocket-Origin: http://illposed.net
+#Sec-WebSocket-Protocol: R
+#Sec-WebSocket-Key: Ddgs4U4KXVewSpLkZKRCRg==
+#Sec-WebSocket-Version: 8
+`websocket` = function(url,port,subprotocol="chat")
+{
+  nonce = as.raw(replicate(16,floor(runif(1)*256)))
+  h = paste("GET / HTTP/1.1",sep="")
+  h = paste(h, "Upgrade: websocket", sep="\r\n")
+  h = paste(h, "Connection: Upgrade", sep="\r\n")
+  u = gsub("^.*://","",url)
+  ur = paste("Host:",u)
+  h = paste(h, ur, sep="\r\n")
+  h = paste(h, "Sec-WebSocket-Origin: R", sep="\r\n")
+  p = paste("Sec-WebSocket-Protocol:",subprotocol)
+  h = paste(h, p, sep="\r\n")
+  k = paste("Sec-WebSocket-Key:",base64encode(nonce))
+  h = paste(h, k, sep="\r\n")
+  h = paste(h, "Sec-WebSocket-Version: 8",sep="\r\n")
+  h = paste(h,"\r\n\r\n")
+
+  context = createContext(port, webpage=url, server=FALSE)
+  s = .SOCK_CONNECT (u, port)
+  if(s<1) {
+    .SOCK_CLOSE(s)
+    stop("Connection error")
+  }
+  j =.SOCK_SEND(s,h)
+  j =.SOCK_POLL(s, timeout=5000L)
+  if(length(j)==0 || j!=s){
+    .SOCK_CLOSE(s)
+    stop("Connection timeout")
+  }
+  x <- .SOCK_RECV(s,max_buffer_size=getOption("websockets_max_buffer_size"))
+# XXX XXX parse for valid connection headers to finish handshake...
+  context$client_sockets[[length(context$client_sockets) + 1]] =
+    list(socket=s, wsinfo=list(v=8), server=NULL)
+  context
 }

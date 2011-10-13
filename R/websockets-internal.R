@@ -146,6 +146,15 @@
 # 2-byte data length
     head2[1:7] = rawToBits(as.raw(126))[1:7]
     rest = packBits(intToBits(len),type="raw")[2:1]
+
+cat("head: ")
+print(head)
+print(packBits(head))
+
+cat("rest: ")
+print(rest)
+print(rawToBits(rest))
+
   }
   c(packBits(head), packBits(head2), rest)
 }
@@ -218,13 +227,17 @@
   else{
     stop("Only raw message types presently supported.")
   }
-  if(length(data) < frame$offset || is.null(frame$key)) 
+  if(length(data) < frame$offset || (is.null(frame$key) && frame$mask)) 
     return(list(header=frame,data=c()))
 #  list(header=frame,data=.MASK(data[frame$offset:length(data)],frame$key))
 # XXX Check if multiple frames packed into payload and handle this!
 # XXX XXX XXX XXX
 # Right now incoming data frames may be dropped!
-  list(header=frame,data=.MASK(data[frame$offset:(frame$len + frame$offset - 1)],frame$key))
+  if(frame$mask)
+    return(list(header=frame,
+                data=.MASK(data[frame$offset:(frame$len + frame$offset - 1)],
+                           frame$key)))
+  return(list(header=frame,data=data[frame$offset:(frame$len + frame$offset - 1)]))
 }
 
 `.add_client` <- function(socket, server)

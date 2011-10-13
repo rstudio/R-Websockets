@@ -27,6 +27,21 @@
   .Call('SOCK_RECV', as.integer(socket), as.integer(external_pointer), as.numeric(max_buffer_size), PACKAGE='websockets')
 }
 
+.SOCK_RECV_FRAME = function(socket, external_pointer=FALSE, max_buffer_size=2^24)
+{
+  .Call('SOCK_RECV_FRAME', as.integer(socket), as.integer(external_pointer), as.numeric(max_buffer_size), PACKAGE='websockets')
+}
+
+.SOCK_RECV_FRAME00 = function(socket, external_pointer=FALSE, max_buffer_size=2^24)
+{
+  .Call('SOCK_RECV_FRAME00', as.integer(socket), as.integer(external_pointer), as.numeric(max_buffer_size), PACKAGE='websockets')
+}
+
+.SOCK_RECV_HTTP_HEAD = function(socket)
+{
+  .Call('SOCK_RECV_HTTP_HEAD', as.integer(socket), PACKAGE='websockets')
+}
+
 # We trap the possibility of a SIGPIPE signal error during SOCK_SEND.
 .SOCK_SEND = function(socket, msg)
 {
