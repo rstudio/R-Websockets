@@ -401,31 +401,35 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   char *buf, *p;
   unsigned char h1[2];  // header
   unsigned char h2[8];  // extended payload length
-  unsigned char h3[2];  // masking key
+  unsigned char h3[4];  // masking key
+  unsigned char c;
   unsigned long long len, l;
   int mask;
   struct pollfd pfds;
-  int j, s = INTEGER(S)[0];
+  unsigned int j;
+  int s = INTEGER(S)[0];
   double maxbufsize = REAL(MAXBUFSIZE)[0];
   int l2=0, l3=0;
 
   pfds.fd = s;
   pfds.events = POLLIN;
-  j = poll(&pfds, 1, 50);
-  if(j<1) return ans;
+  if(poll(&pfds, 1, 50)<1) return ans;
   memset(h1,0,2);
   j = recv(s, h1, 2, 0);
   if(j<2) return ans;
-  mask = h1[1] & (1 << 8);
-  j = (int)(h1[1] &= ~(1 << 8));
+  mask = (h1[1] & (1 << 7))>0;
+  c = h1[1] & ~(1 << 7);
+  j = c;
   if(j==126) {
     memset(h2,0,8);
+    if(poll(&pfds, 1, 50)<1) return ans;
     j = recv(s, h2, 2, 0);
     if(j<2) return ans;
     len = 256 * (unsigned int)h2[0] + (unsigned int)h2[1];
     l2 = 2;
   } else if (j==127) {
     memset(h2,0,8);
+    if(poll(&pfds, 1, 50)<1) return ans;
     j = recv(s, h2, 8, 0);
     if(j<8) return ans;
 // XXX should be able to directly cast this, right?  memcpy(&len, h2, 8);
@@ -444,18 +448,27 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
     len = maxbufsize;
   }
   if(mask){
-    memset(h3,0,2);
-    j = recv(s, h3, 2, 0);
-    if(j<2) return ans;
-    l3 = 2;
+    memset(h3,0,4);
+    if(poll(&pfds, 1, 50)<1) return ans;
+    j = recv(s, h3, 4, 0);
+    if(j<4) return ans;
+    l3 = 4;
   }
   buf = (char *)malloc(2 + l2 + l3 + len);
   p = buf;
   memcpy(p, h1, 2); p+=2;
   if(l2>0) memcpy(p, h2, l2); p+=l2;
   if(l3>0) memcpy(p, h3, l3); p+=l3;
+  j = (unsigned int)len;
+// XXX can fail here, need nonblocking
+  if(poll(&pfds, 1, 50)<1){
+    fprintf(stderr, "not ready\n");
+    free(buf);
+    return(ans);
+  }
   j = recv(s, p, len, 0);
-  if(j<len) warning("Short read");
+  if(j<len) fprintf(stderr,"Short read\n");
+  len = len + 2 + l2 + l3;
   if(INTEGER(EXT)[0]) {
 /* return a pointer to the recv buffer */
     ans = R_MakeExternalPtr ((void *)buf, R_NilValue, R_NilValue);
@@ -487,10 +500,10 @@ SEXP SOCK_RECV_FRAME00(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
 
   pfds.fd = s;
   pfds.events = POLLIN;
-  h = poll(&pfds, 1, 50);
-  for(;;) {
+  h = poll(&pfds, 1, 150);
+  while(h>0) {
     j = recv(s, &c, 1, 0);
-    if(j<0 || c==0) break;
+    if(j<0 || c==0xff) break;
     buf[k] = c;
     k++;
     if(k>maxbufsize){
@@ -502,10 +515,6 @@ SEXP SOCK_RECV_FRAME00(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
       buf = (char *)realloc(buf, bufsize);  
     }
     h = poll(&pfds, 1, 50);
-    if(h<1) {
-      --k;
-      break;
-    }
   }
   if(INTEGER(EXT)[0]) {
 /* return a pointer to the recv buffer */
@@ -538,7 +547,7 @@ SEXP SOCK_RECV_HTTP_HEAD(SEXP S)
   pfds.fd = s;
   pfds.events = POLLIN;
   h = poll(&pfds, 1, 50);
-  for(;;) {
+  while(h>0) {
     j = recv(s, &c, 1, 0);
     if(j<0) break;
     buf[k] = c;
@@ -552,7 +561,6 @@ SEXP SOCK_RECV_HTTP_HEAD(SEXP S)
       buf = (char *)realloc(buf, bufsize);  
     }
     h = poll(&pfds, 1, 50);
-    if(h<1) break;
   }
   PROTECT(ans=allocVector(RAWSXP,k));
   p = (char *)RAW(ans);
