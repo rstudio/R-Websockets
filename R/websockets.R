@@ -110,15 +110,15 @@
 # server  (the environment associated with the server for this client)
   assign('client_sockets', list(), envir=w)
 # This is not required, but we supply a default recieve function:
-  assign('receive', function(WS, DATA, COOKIE=NULL) {
+  assign('receive', function(WS, DATA, HEADER=NULL) {
                       cat("Received data from client ",WS$socket,":\n")
                       if(is.raw(DATA)) cat(rawToChar(DATA),"\n")
                     },envir=w)
-  assign('closed', function(WS, DATA, COOKIE=NULL) {
+  assign('closed', function(WS) {
                       cat("Client socket",WS$socket," was closed.\n")
                       if(is.null(WS$wsinfo)){cat("(It was not a websocket client, just a static web page.)\n")}
                    },envir=w)
-  assign('established', function(WS, DATA, COOKIE=NULL) {
+  assign('established', function(WS) {
                       cat("Client socket",WS$socket," has been established.\n")
                    },envir=w)
   return(w)
@@ -195,7 +195,7 @@
         else .SOCK_SEND(j,.v04_resp_101(h))
 # Trigger callback for newly-established connections
         if(is.function(server$established))
-          server$established(WS=J,DATA=NULL,COOKIE=NULL)
+          server$established(WS=J)
         next
       } else if(J$wsinfo$v < 4) {
 # Old protocol
@@ -209,15 +209,15 @@
         websocket_close(J)
         next
       }
-# Burn payload if we cant use it.
+# Burn payload if we can't use it.
       if(!is.function(server$receive)) next
       if(J$wsinfo$v < 4) {
-        server$receive(WS=J, DATA=.v00_unframe(x), COOKIE=NULL)
+        server$receive(WS=J, DATA=.v00_unframe(x), HEADER=NULL)
       }
       else{
         DATA <- .unframe(x)
-        if(DATA$header$opcode == 1){
-          server$receive(WS=J, DATA=DATA$data, COOKIE=NULL)
+        if(DATA$header$opcode < 3){
+          server$receive(WS=J, DATA=DATA$data, HEADER=DATA$header)
         } else if(DATA$header$opcode == 8) {
           websocket_close(J)
           next
@@ -233,14 +233,6 @@
 # 2. Create a context environment
 # 3. Connect to the server and establish
 #    websocket or fail.
-#GET / HTTP/1.1
-#Upgrade: websocket
-#Connection: Upgrade
-#Host: localhost:7681
-#Sec-WebSocket-Origin: http://illposed.net
-#Sec-WebSocket-Protocol: R
-#Sec-WebSocket-Key: Ddgs4U4KXVewSpLkZKRCRg==
-#Sec-WebSocket-Version: 8
 `websocket` = function(url,port,subprotocol="chat")
 {
   nonce = as.raw(replicate(16,floor(runif(1)*256)))

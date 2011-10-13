@@ -1,14 +1,13 @@
 \name{create_server}
 \alias{create_server}
-\title{
-Create a websocket server.
-}
+\alias{createContext}
+\title{ Create a websocket server.  }
 \description{
 Create a websocket server and bind it to a port.
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
 create_server(port = 7681L, webpage = static_file_service(paste(system.file(package = "websockets"), "basic.html", sep = "//")))
+createContext(port = 7681L, webpage = static_file_service(paste(system.file(package = "websockets"), "basic.html", sep = "//")))
 }
 \arguments{
   \item{port}{The service port number. }
@@ -23,14 +22,21 @@ server. Server events must be serviced with the \code{service} function.
 An environment is returned. The R/Websocket service will search the environment
 for callback functions named:
 \code{closed}, \code{established}, and \code{receive}.
-Each callback function must take three arguments: DATA, WS, and '...'.
+The \code{established} and \code{closed} functions must take a single
+argument (a websocket).
+The \code{receive} function must take three arguments: DATA, WS, and '...',
+holding the message data, websocket client, and possible 
+ancillary information received.
 The callback functions are optional. When a websocket event occurs, the
 corresponding function will be evaluated if it exists.
 The DATA parameter holds a RAW vector with incoming data from broadcast
 or receive events, and may be of length zero for other events.
-The WS parameter is an external pointer reference to the client web socket
-corresponding to the event.
-Previous package versions included a COOKIE parameter which has been dropped.
+The WS parameter is the client web socket corresponding to the event.
+
+\strong{PLEASE NOTE THAT THE CALLBACK FUNCTION PARAMETERS HAVE CHANGED AS OF
+PACKAGE VERSION 1.1.0 AND ARE NOT BACKWARD-COMPATIBLE WITH OLDER VERSIONS.
+}
+See the \code{\link{set_callback}} function for more information.
 }
 \author{
 B. W. Lewis <blewis@illposed.net>

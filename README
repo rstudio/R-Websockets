@@ -10,10 +10,12 @@ Significant changes in package version 1.1.0:
   as well as newer protocols up to at least -15 are now supported.
 - All features related to "cookies" have been removed. Sorry if this breaks
   something. It's easy enough to replicate that functionality directly in R.
+- THE CALLBACK FUNCTIONS HAVE CHANGED: there are only three (established,
+  receive, and closed) and their parameters are different. SEE THE set_callback
+  HELP PAGE.
 - Each websocket server has an R environment associated with it. The environment
   contains a list of connected client websockets and all other data required
   by the server.
-- Otherwise we try to maintain syntax compatibility with previous package
-  versions.
 - There are new functions for serving static web pages from files or strings.
+- We added a websocket client function too.
 - The license has changed from GPL-2 to LGPL-3.

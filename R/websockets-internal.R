@@ -179,11 +179,13 @@ print(rawToBits(rest))
 # pointer will be supported soon (external pointer messages can be unmasked
 # in place).
 #
-# XXX does not handle fragmentation yet...add this.
 # The bit ordering is a bit hard to follow, sorry.
 # This version of unframe returns a list with two elements:
 # header: the frame header
 # data:   the unmasked frame data payload or NULL
+#
+# Fragmentation, binary/text, opcodes, etc. must be handled by the high-level
+# receive function. NOTE!
 .unframe = function(data)
 {
   frame=list()
@@ -261,7 +263,7 @@ print(rawToBits(rest))
   assign('client_sockets',cs, envir=server)
 # Trigger client closed callback
   if(exists("closed", envir=server))
-    server$closed(socket, DATA=NULL, COOKIE=NULL)
+    server$closed(socket)
   j
 }
 
