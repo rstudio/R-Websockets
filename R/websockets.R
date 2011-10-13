@@ -274,16 +274,14 @@
     nkey[idx] = char2
     nkey[-idx] = key2
     key2 = nkey
-    nsp1 = round(runif(1)*12)+1
-    nsp2 = round(runif(1)*12)+1
-    len = length(key1) + nsp1
-    idx = sample(2:(len - 1), nsp1)
+    len = length(key1) + spaces1
+    idx = sample(2:(len - 1), spaces1)
     nkey = character(len)
     nkey[idx] = " "
     nkey[-idx] = key1
     key1 = paste(nkey,collapse="")
-    len = length(key2) + nsp2
-    idx = sample(2:(len - 1), nsp2)
+    len = length(key2) + spaces2
+    idx = sample(2:(len - 1), spaces2)
     nkey = character(len)
     nkey[idx] = " "
     nkey[-idx] = key2
@@ -319,9 +317,13 @@
   if(!all(x[1:12] == charToRaw("HTTP/1.1 101")))
     stop(paste("Connection error: ",rawToChar(x),sep="\n"))
 # XXX XXX parse for valid connection headers to finish handshake...
-# XXX ADD ME
+# XXX ADD ME (NOW, WE DON'T CHECK ANYTHING)
 # XXX XXX
-   context$client_sockets[[as.character(s)]] <- 
+  if(version==0) {
+    if(.SOCK_POLL(s)>0)
+      x <- .SOCK_RECV(s, buf_size=16L, max_buffer_size=16)
+  }
+  context$client_sockets[[as.character(s)]] <- 
     list(socket=s, wsinfo=list(v=version), server=NULL, new=FALSE)
   context
 }

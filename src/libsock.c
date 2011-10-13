@@ -133,12 +133,14 @@ tcpconnect (char *host, int port)
 	  return -1;
 	}
     }
+/* Not really needed anymore.
 #ifdef WIN32
     u_long iMode=1;
     ioctlsocket(s,FIONBIO,&iMode);
 #else
     fcntl(s, F_SETFL, O_NONBLOCK);
 #endif
+*/
   return s;
 }
 
@@ -262,7 +264,7 @@ SEXP SOCK_SEND(SEXP S, SEXP DATA)
 }
 
 /* A generic recv wrapper function */
-SEXP SOCK_RECV(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
+SEXP SOCK_RECV(SEXP S, SEXP EXT, SEXP BS, SEXP MAXBUFSIZE)
 {
   SEXP ans = R_NilValue;
   void *buf;
@@ -272,15 +274,16 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   size_t k = 0;
   double maxbufsize = REAL(MAXBUFSIZE)[0];
   int bufsize = MBUF;
-  if(maxbufsize < RXBUF) maxbufsize = RXBUF;
-  buf = (void *)malloc(RXBUF);
-  msg = (char *)malloc(MBUF);
+  int bs = INTEGER(BS)[0];
+  if(maxbufsize < bs) maxbufsize = bs;
+  buf = (void *)malloc(bs);
+  msg = (char *)malloc(bs);
   p = msg;
   pfds.fd = s;
   pfds.events = POLLIN;
   h = poll(&pfds, 1, 50);
   while(h>0) {
-    j = recv(s, buf, RXBUF, 0);
+    j = recv(s, buf, bs, 0);
     if(j<1) break;
 /* If we exceed the maxbufsize, break. This leaves data
  * in the TCP RX buffer. XXX We need to tell R that this

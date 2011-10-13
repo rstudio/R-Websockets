@@ -149,8 +149,10 @@ types. Such functions are termed ``callbacks.''
 
 The {\tt set\_callback} function may be used to define a callback function in
 the server environment returned by {\tt create\_server}. (It
-simply assigns the functions in that environment.) A callback function
-must take precisely 3 parameters that are filled in by the library
+simply assigns the functions in that environment.)
+
+The {\tt receive} callback function 
+must take precisely three parameters that are filled in by the library
 with values corresponding to an event when invoking a callback function.
 The required parameters are:
 \begin{enumerate}
@@ -159,14 +161,20 @@ with the event. It may be of length zero if the event does not have any
 data to report.
 \item {\tt WS}: The websocket client associated with the event, represented
 as an R list.
-\item {\tt ...}: Presently unused.
+\item {\tt HEADER}: Header data returned by newer protocol versions, or
+NULL for protocol version 00.
 \end{enumerate}
-The parameters can be arbitrarily named, but there must be three.
+
+The {\tt closed} and {\tt receive} function must each take one argument:
+\begin{enumerate}
+\item {\tt WS}: The websocket client associated with the event, represented
+as an R list.
+\end{enumerate}
 
 The example function below sends a message to each newly-established
 connection:
 \begin{lstlisting}
-f = function(DATA, WS, ...) {
+f = function(WS) {
   websocket_write("Hello there!", WS)
 }
 set_callback("established", f, server)
@@ -289,8 +297,10 @@ we reccommend using the
 instead.
 
 
-\section{Using {\tt websockets} as a client, step by step}
-WRITE ME!
+\section{Using {\tt websockets} as a client}
+The {\tt websocket} function provides an R client interface. 
+
+FINISH WRITING ME
 
 \section{Tips and miscellaneous notes}
 We present a few more advanced and other miscellaneous notes in this
