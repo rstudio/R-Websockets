@@ -12,6 +12,7 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <poll.h>
 #define INVALID_SOCKET -1
 #endif
@@ -42,6 +43,7 @@ R_unload_websockets(DllInfo * info)
   WSACleanup();
 }
 #endif
+
 
 /* tcpserv
  * Set up a tcp/ip server. Set lport to 0 for an OS-assigned port. The
@@ -98,6 +100,13 @@ tcpserv (int lport)
 #endif
       return -1;
     }
+#ifdef WIN32
+    u_long iMode=1;
+    ioctlsocket(s,FIONBIO,&iMode);
+#else
+    fcntl(s, F_SETFL, O_NONBLOCK);
+    signal(SIGPIPE, SIG_IGN);
+#endif
   return (int)s;
 }
 
@@ -133,14 +142,13 @@ tcpconnect (char *host, int port)
 	  return -1;
 	}
     }
-/* Not really needed anymore.
 #ifdef WIN32
     u_long iMode=1;
     ioctlsocket(s,FIONBIO,&iMode);
 #else
     fcntl(s, F_SETFL, O_NONBLOCK);
+    signal(SIGPIPE, SIG_IGN);
 #endif
-*/
   return s;
 }
 
@@ -465,11 +473,14 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   j = (unsigned int)len;
 // XXX can fail here, need nonblocking
   if(poll(&pfds, 1, 50)<1){
-    fprintf(stderr, "not ready\n");
     free(buf);
     return(ans);
   }
   j = recv(s, p, len, 0);
+  if(j<1) {
+    free(buf);
+    return(ans);
+  }
   if(j<len) fprintf(stderr,"Short read\n");
   len = len + 2 + l2 + l3;
   if(INTEGER(EXT)[0]) {
