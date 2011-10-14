@@ -104,7 +104,11 @@ tcpserv (int lport)
     u_long iMode=1;
     ioctlsocket(s,FIONBIO,&iMode);
 #else
-    fcntl(s, F_SETFL, O_NONBLOCK);
+    if(fcntl(s, F_SETFL, O_NONBLOCK) < 0)
+     {
+       close(s);
+       return -1;
+     }
     signal(SIGPIPE, SIG_IGN);
 #endif
   return (int)s;
@@ -146,7 +150,11 @@ tcpconnect (char *host, int port)
     u_long iMode=1;
     ioctlsocket(s,FIONBIO,&iMode);
 #else
-    fcntl(s, F_SETFL, O_NONBLOCK);
+    if(fcntl(s, F_SETFL, O_NONBLOCK) < 0)
+     {
+       close(s);
+       return -1;
+     }
     signal(SIGPIPE, SIG_IGN);
 #endif
   return s;
@@ -514,10 +522,10 @@ SEXP SOCK_RECV_FRAME00(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
 
   pfds.fd = s;
   pfds.events = POLLIN;
-  h = poll(&pfds, 1, 150);
+  h = poll(&pfds, 1, 50);
   while(h>0) {
     j = recv(s, &c, 1, 0);
-    if(j<0) break;
+    if(j<1) break;
     buf[k] = c;
     k++;
     if(c<0) break;
@@ -564,7 +572,7 @@ SEXP SOCK_RECV_HTTP_HEAD(SEXP S)
   h = poll(&pfds, 1, 50);
   while(h>0) {
     j = recv(s, &c, 1, 0);
-    if(j<0) break;
+    if(j<1) break;
     buf[k] = c;
     k++;
     if(k>4 && buf[k-1]==10 &&
