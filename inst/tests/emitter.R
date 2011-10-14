@@ -61,7 +61,10 @@ set_callback("receive",f,w)
 cat("Direct your local web browser to http://localhost:7681\n")
 j = 1
 while(TRUE){
-  service(w, timeout=10L)
   websocket_broadcast(paste(j),w)
   j = j + 1
+  if(j>20) {
+    service(w, timeout=1L)
+    j = 1
+  }
 }
