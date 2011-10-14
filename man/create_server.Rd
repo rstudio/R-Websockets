@@ -7,11 +7,12 @@ Create a websocket server and bind it to a port.
 }
 \usage{
 create_server(port = 7681L, webpage = static_file_service(paste(system.file(package = "websockets"), "basic.html", sep = "//")))
-createContext(port = 7681L, webpage = static_file_service(paste(system.file(package = "websockets"), "basic.html", sep = "//")))
+createContext(port = 7681L, webpage = static_file_service(paste(system.file(package = "websockets"), "basic.html", sep = "//")), server = TRUE)
 }
 \arguments{
   \item{port}{The service port number. }
   \item{webpage}{Optionally, specifiy a function to service HTTP requests. This value may be NULL.}
+  \item{server}{Set FALSE if the environment will represent a client connection (used internally by the \code{websocket} function.}
 }
 \details{
 The websockets package supports an arbitrary number of servers, each listening

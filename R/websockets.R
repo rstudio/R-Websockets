@@ -12,7 +12,7 @@
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
-    j <-.SOCK_SEND(WS$socket,.frame(length(DATA,mask=mask)))
+    j <-.SOCK_SEND(WS$socket,.frame(length(DATA),mask=mask))
     if(j<0) {
       websocket_close(WS)
       return(j)
@@ -138,11 +138,11 @@
   if(!is.null(connection$socket)) .remove_client(connection)
   else {
 # This is not a client socket, perhaps a server?
-    if(!is.null(connection$server_socket)) {
-      for(j in connection$client_sockets) .remove_client(j)
+    for(j in connection$client_sockets) .remove_client(j)
+    if(!is.null(connection$server_socket))
       .SOCK_CLOSE(connection$server_socket)
-    }
   }
+  invisible()
 }
 
 # Naming convention will change in a futer version: 'context' will be
@@ -241,7 +241,7 @@
 # 3. Connect to the server and establish
 #    websocket or fail.
 # Use the same callback functions as with server.
-`websocket` = function(url,port,subprotocol="chat", version=0)
+`websocket` = function(url,port=80,subprotocol="chat", version=0)
 {
   nonce = as.raw(replicate(16,floor(runif(1)*256)))
   h = paste("GET / HTTP/1.1",sep="")
@@ -332,6 +332,6 @@
       x <- .SOCK_RECV(s, buf_size=16L, max_buffer_size=16)
   }
   context$client_sockets[[as.character(s)]] <- 
-    list(socket=s, wsinfo=list(v=version), server=NULL, new=FALSE)
+    list(socket=s, wsinfo=list(v=version), server=context, new=FALSE)
   context
 }
