@@ -5,6 +5,7 @@ htmldata = '<html><head><title>R/Websockets</title></head>
 String.prototype.startsWith = function(str){return (this.indexOf(str) === 0);}
 var socket = new WebSocket("ws://localhost:7681", "chat");
 var j = 1;
+var tm;
 try {
   socket.onopen = function() {
     document.getElementById("wsdi_status").textContent =
@@ -13,6 +14,12 @@ try {
   } 
   socket.onmessage = function got_packet(msg) {
     document.getElementById("chat").innerHTML = "<pre>" + msg.data + "</pre>";
+    if(j>100) {
+      var s = j*((new Date()).getTime() - tm)/1000;
+      tm = (new Date()).getTime();
+      j = 1;
+      document.getElementById("status").innerHTML = "<pre>" + s + " msg/s</pre>";
+    }
   } 
   socket.onclose = function(){
     document.getElementById("wsdi_status").textContent =
@@ -26,11 +33,11 @@ spigot = function()
 {
   socket.send(j + " ");
   j = j + 1;
-  console.log(j);
-  setTimeout("spigot();", 50);
+  setTimeout("spigot();", 10);
 }
 
 window.onload = function(){ 
+  tm = (new Date()).getTime();
   document.getElementById("chat").innerHTML = "Starting...";
   setTimeout("spigot();", 1000);
 }
@@ -43,6 +50,8 @@ window.onload = function(){
 </td></tr></table>
 <div id="chat">
 </div>
+<div id="status">
+</div>
 <hr />
 </body>
 </html>
@@ -52,12 +61,9 @@ w = createContext(webpage=static_text_service(htmldata))
 f = function(DATA,WS,...)
 {
   d = tryCatch(rawToChar(DATA),error=function(e) "")
-cat("received ",d,"\n")
   x = paste("<b>WebSocket ",WS$socket," says: </b>",d,sep="")
   websocket_write(x,WS)
 }
 set_callback("receive",f,w)
 cat("Direct your local web browser to http://localhost:7681\n")
-while(TRUE){
-  service(w, timeout=1000L)
-}
+while(TRUE) service(w)
