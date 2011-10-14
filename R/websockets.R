@@ -3,17 +3,24 @@
   v <- WS$wsinfo$v
 # Give up silently. I supressed the warning since broadcast might
 # easily hit a non-websocket client (say, a web page request).
-  if(is.null(v) || is.null(WS$server)) {
+  if(is.null(v)) {
 #      warning("Invalid websocket")
       return(invisible())
   }
+  mask = FALSE
+  if(is.null(WS$server)) mask = TRUE
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
-    j <-.SOCK_SEND(WS$socket,.frame(length(DATA)))
+    j <-.SOCK_SEND(WS$socket,.frame(length(DATA,mask=mask)))
     if(j<0) {
       websocket_close(WS)
       return(j)
+    }
+    if(mask) {
+      key = as.raw(floor(runif(4)*256))
+      j <- .SOCK_SEND(WS$socket, key)
+      return(.SOCK_SEND(WS$socket, .MASK(DATA,key)))
     }
     return(.SOCK_SEND(WS$socket, DATA))
   }
@@ -238,16 +245,13 @@
 {
   nonce = as.raw(replicate(16,floor(runif(1)*256)))
   h = paste("GET / HTTP/1.1",sep="")
-  h = paste(h, "Upgrade: websocket", sep="\r\n")
+  h = paste(h, "Upgrade: WebSocket", sep="\r\n")
   h = paste(h, "Connection: Upgrade", sep="\r\n")
   u = gsub("^.*://","",url)
   ur = paste("Host:",u)
   h = paste(h, ur, sep="\r\n")
-  h = paste(h, "Sec-WebSocket-Origin: R", sep="\r\n")
   p = paste("Sec-WebSocket-Protocol:",subprotocol)
   h = paste(h, p, sep="\r\n")
-  ver = paste("Sec-WebSocket-Version:",version)
-  h = paste(h, ver, sep="\r\n")
   if(version==0) {
 # This is so dumb.
     spaces1 = round(runif(1)*12)+1
@@ -287,6 +291,7 @@
     nkey[-idx] = key2
     key2 = paste(nkey,collapse="")
     key3 = as.raw(floor(runif(8)*256))
+    h = paste(h, "Origin: r", sep="\r\n")
     k = paste("Sec-WebSocket-Key1:",key1)
     h = paste(h, k, sep="\r\n")
     k = paste("Sec-WebSocket-Key2:",key2)
@@ -295,6 +300,9 @@
     h = charToRaw(h)
     h = c(h, key3)
   } else {
+    h = paste(h, "Sec-WebSocket-Origin: r", sep="\r\n")
+    ver = paste("Sec-WebSocket-Version:",version)
+    h = paste(h, ver, sep="\r\n")
     k = paste("Sec-WebSocket-Key:",base64encode(nonce))
     h = paste(h, k, sep="\r\n")
     h = paste(h,"\r\n\r\n")
@@ -307,7 +315,7 @@
     stop("Connection error")
   }
   j =.SOCK_SEND(s,h)
-  j =.SOCK_POLL(s, timeout=5000L)
+  j =.SOCK_POLL(s, timeout=2000L)
   if(length(j)==0 || j!=s){
     .SOCK_CLOSE(s)
     stop("Connection timeout")

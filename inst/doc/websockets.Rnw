@@ -71,21 +71,21 @@ blewis@illposed.net}
 
 \section{Introduction}
 
-The HTML 5 websocket API is a modern socket-like communication protocol for the
-web. The {\tt websockets} package is a native websocket implementation
-for R that supports most of the draft IETF protocols in use by web browsers.
+HTML 5 websockets define an efficient socket-like communication protocol for
+the web. The {\tt websockets} package is a native websocket implementation for
+R that supports most of the draft IETF protocols in use today by web browsers.
 The {\tt websockets} package is especially well-suited to interaction between R
 and web scripting languages like Javascript.  Multiple simultaneous websocket
 server and client connections are supported.
 
-The library has few external dependencies and, written mostly in R, is easily
-portable.  More significantly, {\tt websockets} lets Javascript and other
-scripts embedded in web pages directly interact with R, bypassing traditional
-middleware layers like .NET, Java, and web servers normally used for such
-interaction. In some cases, websockets may make much more efficient use of
-networks than Ajax-like schemes for interacting with clients over web protocls.
+The {\tt websockets} package has few  dependencies and, written mostly in R, is
+easily portable.  It lets Javascript and other scripts embedded in web pages
+directly interact with R, bypassing traditional middleware layers like .NET,
+Java, and web servers normally used for such interaction. In some cases,
+websockets can be much more efficient than traditional Ajax schemes for
+interacting with clients over web protocls.
 
-\section{Using {\tt websockets} as a server, step by step}
+\section{Running an R {\tt websockets} server, step by step}
 
 The {\tt websockets} package includes a server function that can initiate and
 respond to websocket and HTTP events over a network connection
@@ -95,7 +95,8 @@ All R/Websocket server applications share the following basic recpie:
 \item Load the library.
 \item Initialize a websocket server with {\tt create\_server}.
 \item Set callback functions that will respond to desired events.
-\item Service the server's socket interface with {\tt service}, often in an event loop.
+\item Service the server's socket interface with {\tt service}, often in an
+      event loop.
 \item Shutdown the server and delete the server environment when done.
 \end{enumerate}
 We outline the steps with examples below.
@@ -109,16 +110,15 @@ The library depends on the {\tt caTools} and a recent version of the
 as it is quite useful to have available when interacting with Javascript.
 
 \subsection{Initialize a websocket server with {\tt create\_server}}
-The R/Websocket service is initialized by a call to the
-{\tt create\_server} function. (The initialization method called
-{\tt createContext} from older versions of the package is still supported.)
-The function takes two arguments, a network port
-to listen on, and an optional function closure to service standard
-HTTP requests (described in greater detail below).
-The {\tt create\_server} function returns an environment
-that stores data associated with the newly created server.
-``Callback'' functions may be assigned that respond
-to websocket events. Here is an example that creates a websocket server
+
+The R/Websocket service is initialized by a call to the {\tt create\_server}
+function. (The initialization method called {\tt createContext} from older
+versions of the package is still supported.) The function takes two arguments,
+a network port to listen on, and an optional function closure to service
+standard HTTP requests (described in greater detail below).  The {\tt
+create\_server} function returns an environment that stores data associated
+with the newly created server.  ``Callback'' functions may be assigned that
+respond to websocket events. Here is an example that creates a websocket server
 on the default port of 7681:
 \begin{lstlisting}
 server = create_server()
@@ -130,7 +130,8 @@ example, the basic package demo available from {\tt demo('websockets')} serves
 clients the file {\tt basic.html} located in the package installation path.
 However, serving HTML web pages is not the primary function of the {\tt
 websockets} library--see the
-\href{http://cran.r-project.org/web/packages/Rook/}{Rook} package for that. 
+\href{http://cran.r-project.org/web/packages/Rook/}{Rook} package for a
+comprehensive R web service.
 
 \subsection{Set callback functions to respond to events}
 Clients may connect to the websocket service immediately after the server is
@@ -153,25 +154,23 @@ simply assigns the functions in that environment.)
 
 The {\tt receive} callback function 
 must take precisely three parameters that are filled in by the library
-with values corresponding to an event when invoking a callback function.
+with values corresponding to an event that invokes the callback.
 The required parameters are:
 \begin{enumerate}
 \item {\tt DATA}: A RAW vector that holds any incoming data associated
-with the event. It may be of length zero if the event does not have any
-data to report.
+with the event. (It may be of length zero if the event does not have any
+data to report.)
 \item {\tt WS}: The websocket client associated with the event, represented
 as an R list.
 \item {\tt HEADER}: Header data returned by newer protocol versions, or
 NULL for protocol version 00.
 \end{enumerate}
 
-The {\tt closed} and {\tt receive} function must each take one argument:
-\begin{enumerate}
-\item {\tt WS}: The websocket client associated with the event, represented
+The {\tt closed} and {\tt receive} function must each take one argument,
+a {\tt WS} websocket client associated with the event, represented
 as an R list.
-\end{enumerate}
 
-The example function below sends a message to each newly-established
+The example function below sends a text message to each newly-established
 connection:
 \begin{lstlisting}
 f = function(WS) {
@@ -208,13 +207,12 @@ catch(ex) {document.getElementById("output").textContent = "Error: " + ex;}
 </body></html>
 \end{lstlisting}
 {\bf Note: The {\tt websockets} package presently ignores the
-sub-protocol (``chat'' in the above example). Future versions of the
-package may require specific sub-protocols.}
+sub-protocol (``chat'' in the above example).}
 
 \subsection{Service the socket interface with {\tt service}}
 
-Websocket events are placed in a queue. The {\tt service} function
-processes events in the queue on a first-come, first-served basis.
+Incoming websocket events are queued. The {\tt service} function
+processes events on a first-come, first-served basis.
 The {\tt service} function processes each event by invoking the
 appropriate callback function.
 It returns after a configurable time out if there are no events to service.
