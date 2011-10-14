@@ -5,6 +5,7 @@ htmldata = '<html><head><title>R/Websockets</title></head>
 String.prototype.startsWith = function(str){return (this.indexOf(str) === 0);}
 var socket = new WebSocket("ws://localhost:7681", "chat");
 var j = 1;
+var tm = (new Date()).getTime();
 try {
   socket.onopen = function() {
     document.getElementById("wsdi_status").textContent =
@@ -13,6 +14,14 @@ try {
   } 
   socket.onmessage = function got_packet(msg) {
     document.getElementById("chat").innerHTML = "<pre>" + msg.data + "</pre>";
+    j = j + 1;
+    if(j>100) {
+      var s = j*1000/((new Date()).getTime() - tm);
+      tm = (new Date()).getTime();
+      document.getElementById("status").innerHTML = "<pre>" + s + " msg/s</pre>";
+      j = 1;
+    }
+
   } 
   socket.onclose = function(){
     document.getElementById("wsdi_status").textContent =
@@ -33,6 +42,8 @@ window.onload = function(){
 <div id="wsdi_status"> Connection not initialized </div>
 </td></tr></table>
 <div id="chat">
+</div>
+<div id="status">
 </div>
 <hr />
 </body>
