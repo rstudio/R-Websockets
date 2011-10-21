@@ -46,9 +46,11 @@ B. W. Lewis <blewis@illposed.net>
 }
 \examples{
 # Connect to the public websocket echo service
+\dontrun{
 client = websocket("ws://echo.websocket.org")
 set_callback("receive", function(DATA, WS, HEADER) cat(rawToChar(DATA),"\n"), client)
 websocket_write("Testing, testing", client$client_sockets[[1]])
 service(client)
 websocket_close(client)
+}
 }
