@@ -323,7 +323,7 @@ version 08 (version 00 and 08 are most widely used by web browsers at the time
 of this writing).
 
 The {\tt websocket} function returns an environment similar to the 
-{\tt creat\_server} function, with a single list element in the
+{\tt create\_server} function, with a single list element in the
 {\tt client\_sockets} object corresponding to the client. Set
 callback functions on the new client context to handle websocket
 events just as outlined above for websocket servers. And use
@@ -337,7 +337,7 @@ server (using the 00 protocol).
 > client = websocket("ws://echo.websocket.org", port=80)
 > set_callback("receive", function(DATA, WS, HEADER) cat(rawToChar(DATA)), client)
 
-> websocket_write("Testing, testing", client$client_sockets[[1]])
+> websocket_write("Testing, testing", client)
 [1] 1
 
 > service(client)

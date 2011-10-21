@@ -1,5 +1,11 @@
 `websocket_write` <- function(DATA, WS)
 {
+  mask = FALSE
+  if(is.null(WS$server)) {
+# Then this is a probably client websocket connection.
+    mask = TRUE
+    WS = WS$client_sockets[[1]]
+  }
   v <- WS$wsinfo$v
 # Give up silently. I supressed the warning since broadcast might
 # easily hit a non-websocket client (say, a web page request).
@@ -7,8 +13,6 @@
 #      warning("Invalid websocket")
       return(invisible())
   }
-  mask = FALSE
-  if(is.null(WS$server)) mask = TRUE
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
@@ -118,7 +122,7 @@
   assign('client_sockets', list(), envir=w)
 # This is not required, but we supply a default recieve function:
   assign('receive', function(WS, DATA, HEADER=NULL) {
-                      cat("Received data from client ",WS$socket,":\n")
+                      cat("Received data from client socket ",WS$socket,":\n")
                       if(is.raw(DATA)) cat(rawToChar(DATA),"\n")
                     },envir=w)
   assign('closed', function(WS) {
