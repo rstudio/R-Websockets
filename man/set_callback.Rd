@@ -54,6 +54,11 @@ VERSION 1.1.0 AND ARE NOT COMPATIBLE WITH PREVIOUS PACKAGE VERSIONS.}
 The arguments will be populated by data corresponding to the event.
 The \code{WS} socket can be used by the \code{websocket_write}
 function to write data to the client through the socket.
+
+Non-websocket HTTP requests are serviced by the \code{static} function callback
+defined by the \code{webpage} argument described in the \code{create_server}
+help pages.  The \code{static} function may also be redefined with
+\code{set_callback}.
 }
 \value{
 The \code{set_callback} function is invoked for its side effect of
@@ -65,6 +70,7 @@ B. W. Lewis <blewis@illposed.net>
 }
 \seealso{
 \code{\link{createContext}}
+\code{\link{create_server}}
 }
 \examples{
 # See the detailed example in help('websockets').

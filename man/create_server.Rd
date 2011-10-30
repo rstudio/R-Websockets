@@ -18,6 +18,12 @@ createContext(port = 7681L, webpage = static_file_service(paste(system.file(pack
 The websockets package supports an arbitrary number of servers, each listening
 on a distinct TCP port number. An environment is associated with each running
 server. Server events must be serviced with the \code{service} function.
+
+The webpage callback must be a function of two arguments, \code{socket} and
+\code{header}.  The \code{socket} argument indicates the low-level socket
+descriptor of the client. The \code{header} argument contains a parsed HTTP
+request header. When invoked, the function may examine the request and respond
+using the \code{http_response} and \code{http_vars} functions.
 }
 \value{
 An environment is returned. The R/Websocket service will search the environment
@@ -47,8 +53,9 @@ B. W. Lewis <blewis@illposed.net>
 \code{\link{service}},
 \code{\link{websocket_broadcast}}
 \code{\link{websocket_write}}
-\code{\link{setCallback}}
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+\code{\link{set_callback}}
+\code{\link{http_response}}
+\code{\link{http_vars}}
 }
 \examples{
 # See the detailed example in help('websockets').

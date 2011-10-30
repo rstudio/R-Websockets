@@ -10,7 +10,6 @@ the file for changes and always serving the most recent copy.
 \usage{
 static_file_service(fn)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{fn}{The file path.  }
 }

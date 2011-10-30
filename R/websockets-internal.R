@@ -1,6 +1,7 @@
 # Notes:
 # - no extensions
 # - subprotocol is ignored for now
+# - fragmentation is not supported yet
 
 .onLoad = function(libname,pkgname)
 {
@@ -37,8 +38,9 @@
 
 .parse_header = function(msg)
 {
-# Check to make sure this is a valid GET request. Error out if msg is not
-# of the right type, or return null right away if it does not start with GET.
+# Check to make sure this is a valid GET or POST request. Error out if msg is
+# not of the right type, or return null right away if it does not start with
+# GET or POS.
   cli_header = list()
   if(!(is.character(msg) || is.raw(msg))) stop("Must be raw or character")
   n = ifelse(is.raw(msg),length(msg),nchar(msg))
@@ -46,8 +48,10 @@
   if(is.raw(msg)) if(msg[1]==raw(1)) return(c())
   GET = tryCatch({ifelse(is.raw(msg),rawToChar(msg[1:3]), substr(msg,1,3))},
                  error=function(e) c())
-  if(GET != "GET") return(c())
-# We are dealing with a GET request, OK to continue.
+  if(!(GET %in% c("GET","POS"))) return(c())
+  rtype = "GET"
+  if(GET == "POS") rtype = "POST"
+# We are dealing with a GET or POST request, OK to continue.
   if(is.raw(msg)) {
     cli_header$raw = msg
     msg = rawToChar(msg[msg!=0])
@@ -57,8 +61,9 @@
   x = strsplit(x,"\n")
   if(length(x)<1) return(cli_header)
   x = x[[1]]
-  l = grep("^GET",x,ignore.case=TRUE)
+  l = grep(paste("^",rtype,sep=""),x,ignore.case=TRUE)
   cli_header$GET = ifelse(length(l)>0,x[l[1]],"")
+  cli_header$TYPE = rtype
   GET = strsplit(cli_header$GET," ")[[1]]
   if(length(GET>2)) {
     cli_header$PROT = tail(GET,1)
@@ -67,7 +72,7 @@
   if(length(l)>0) x = x[-l]
   for(j in 1:length(x)) {
     n = gregexpr(":",text=x[j])[[1]]
-    if(n[1]>1) {
+    if(!is.na(n) && n[1]>1) {
       key = substr(x[j],1,n-1)
       value = substr(x[j],n+1,nchar(x[j]))
       value = gsub("^ *", "", value)
@@ -270,12 +275,15 @@
 
 .http_400 = function(socket)
 {
-  .SOCK_SEND(socket,charToRaw("HTTP/1.1 400 BAD REQUEST\r\n\r\n"))
+  .SOCK_SEND(socket,charToRaw("HTTP/1.1 400 BAD REQUEST\r\n\r\n<!DOCTYPE html><html><body><h1>400 Bad request.</h1></body></html>"))
 }
 
-# Generic, very basic 200 response with web page
+# Generic, very basic 200 response.
 # other example maybe in response to /favicon.ico for example:
-#http_200(cs,"image/x-icon",.html5ico)
+# .http_200(socket, "image/x-icon",.html5ico)
+# Or JSON transactions:
+# .http_200(socket, "application/json", <content>)
+# etc.
 .http_200 = function(socket, content_type="text/html; charset=UTF-8",
                     content="<html><body><h1>R Websocket Server</h1></body></html>")
 {
@@ -292,5 +300,49 @@
   .SOCK_CLOSE(socket)
 }
 
+# A basic and generic http response function
+http_response = function(socket, status=200, content_type="text/html; charset=UTF-8", content="")
+{
+  n = ifelse(is.character(content),nchar(content), length(content))
+  h=paste("HTTP/1.1",status,"OK\r\nServer: R/Websocket")
+  h=paste(h,"Content-Type: ",content_type, "\r\n",sep="")
+  h=paste(h,"Date: ",date(),"\r\n",sep="")
+  h=paste(h,"Content-Length: ",n,"\r\n\r\n",sep="")
+  .SOCK_SEND(socket,charToRaw(h))
+  if(is.character(content))
+    .SOCK_SEND(socket,charToRaw(content))
+  else
+    .SOCK_SEND(socket,content)
+  .SOCK_CLOSE(socket)
+}
+
+# Parse http get/post variables, returning a list
+http_vars = function(socket, header)
+{
+  res = strsplit(header$RESOURCE,split="\\?")[[1]]
+  if(header$TYPE=="POST")
+    GET = rawToChar(websockets:::.SOCK_RECV_HTTP_HEAD(socket))
+  else GET = res[2]
+  if(!is.na(GET) && nchar(GET)>1) {
+    GET = lapply(strsplit(GET,"&")[[1]],function(x) strsplit(x,"=")[[1]])
+    gnams = lapply(GET,function(x) x[[1]])
+    GET = lapply(GET,function(x) .urldecode(x[[2]]))
+    names(GET) = gnams
+  } else GET = c()
+  GET
+}
+
+.urldecode = function(x)
+{
+  j = 1
+  while(j<nchar(x)) {
+    if(substr(x,j,j)=="%") {
+      s = substr(x,j,j+2)
+      x = sub(s,intToUtf8(sub("\\%","0x",s)),x)
+    }
+    j = j + 1
+  }
+  gsub("\\+"," ",x)
+}
 
 .html5ico = base64decode("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8f8pZfH/////////////////1+L8/yll8f8pZfH/J1Pn/yZN5P8mTeSPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJk3kvyZN5P8mTeT/Jk3k/yZN5P8mTeT/Jk3k/yZN5P8mTeT/Jk3k/yZN5P8mTeT/Jk3k/yll8f8pZfH/KWXx/yll8f/k7P3/////////////////KWXx/yll8f8nU+f/Jk3k/yZN5L8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAmTeS/Jk3k/yZN5P8mTeT/Jk3k/7rE6f+6xOn/usTp/7rE6f+6xOn/usTp/7rE6f++x+3/ytn8/8rZ/P/K2fz/ytn8//L1/v////////////////8pZfH/KWXx/ydY6v8mTeT/Jk3kvwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACZN5M8mTeT/Jk3k/yZN5P9La+X/6+vr/+vr6//r6+v/6+vr/+vr6//r6+v/6+vr//Dw8P///////////////////////////////////////////zZv8v8pZfH/KFnr/yZN5P8mTeTPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJk3k/yZN5P8mTeT/Jk3k/1d15v/r6+v/6+vr/+vr6//r6+v/6+vr/+vr6//r6+v/8PDw////////////////////////////////////////////X4z1/yll8f8oWev/Jk3k/yZN5P8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAmTeT/Jk3k/yZN5P8mTeT/V3Xm/+vr6//r6+v/6+vr/+vr6//r6+v/6+vr/+vr6//w8PD///////////////////////////////////////////9fjPX/KWXx/yhf7v8mTeT/Jk3k/wAAAAAAAAAAAAAAAAAAAAAAAAAAJk3kICZN5P8mTeT/Jk3k/yZN5P98kuf/6+vr/+vr6//r6+v/iZzo/yZN5P8mTeT/Jk3k/yZN5P8pZfH/KWXx/yll8f8pZfH/KWXx/yll8f8pZfH/KWXx/yll8f8pZfH/KF/u/yZN5P8mTeT/Jk3kIAAAAAAAAAAAAAAAAAAAAAAmTeRAJk3k/yZN5P8mTeT/Jk3k/4mc6P/r6+v/6+vr/+vr6/9Xdeb/Jk3k/yZN5P8mTeT/Jk3k/yll8f8pZfH/KWXx/yll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",what="raw")
