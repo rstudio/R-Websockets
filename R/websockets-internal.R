@@ -167,9 +167,6 @@
 
 # Returns raw message (could be NULL) or FALSE if the client wants
 # to close the connection.
-# XXX XXX Rapid client messaging may result in combined frames in one payload.
-# XXX XXX This function currently drops extra frames, losing the data.
-# XXX XXX Fix this to properly handle all frames.
 .v00_unframe = function(data)
 {
   ff = as.raw(255)
@@ -237,10 +234,6 @@
   }
   if(length(data) < frame$offset || (is.null(frame$key) && frame$mask)) 
     return(list(header=frame,data=c()))
-#  list(header=frame,data=.MASK(data[frame$offset:length(data)],frame$key))
-# XXX Check if multiple frames packed into payload and handle this!
-# XXX XXX XXX XXX
-# Right now incoming data frames may be dropped!
   if(frame$mask)
     return(list(header=frame,
                 data=.MASK(data[frame$offset:(frame$len + frame$offset - 1)],

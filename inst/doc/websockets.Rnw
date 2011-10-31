@@ -33,6 +33,7 @@
 \definecolor{brown}{rgb}{0.6,0.3,0.3}
 \definecolor{darkblue}{rgb}{0,0,0.8}
 \definecolor{darkmagenta}{rgb}{0.5,0,0.5}
+\definecolor{lgray}{rgb}{0.95,0.95,0.95}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -70,10 +71,10 @@ blewis@illposed.net}
 \begin{document}
 
 \lstset{
-%  frame=single,
+  frame=single,
   columns=fixed,
   basicstyle=\ttfamily,
-%  backgroundcolor=\color{lgray},
+  backgroundcolor=\color{lgray},
   basewidth={0.50em, 0.45em},
   breaklines=true,
 }
@@ -94,9 +95,17 @@ server and client connections are supported.
 The {\tt websockets} package has few  dependencies and, written mostly in R, is
 easily portable.  It lets Javascript and other scripts embedded in web pages
 directly interact with R, bypassing traditional middleware layers like .NET,
-Java, and web servers normally used for such interaction. In some cases,
+Java, and web servers normally used for such interaction. And in some cases,
 websockets can be much more efficient than traditional Ajax schemes for
 interacting with clients over web protocls.
+
+The {\tt websockets} package provides three primary capabilities:
+\begin{enumerate}
+\item An websocket service.
+\item An websocket client.
+\item A basic HTTP service.
+\end{enumerate}
+This guide illustrates each capability with simple examples.
 
 \section{Running an R {\tt websockets} server, step by step}
 
@@ -132,27 +141,27 @@ a network port to listen on, and an optional function closure to service
 standard HTTP requests (described in greater detail below).  The {\tt
 create\_server} function returns an environment that stores data associated
 with the newly created server.  ``Callback'' functions may be assigned that
-respond to websocket events. Here is an example that creates a websocket server
-on the default port of 7681:
+respond to specific websocket and generic http events. Here is an example 
+that creates a websocket server on the default port of 7681:
 \begin{lstlisting}
 server = create_server()
 \end{lstlisting}
+Multuple websocket servers may be defined, but they must use distinct ports.
 
 The websocket server will respond directly to any websocket client request.
-For convenience, the server may optionally also service basic HTML reuests.  For
-example, the basic package demo available from {\tt demo('websockets')} serves
-clients the file {\tt basic.html} located in the package installation path.
-However, serving HTML web pages is not the primary function of the {\tt
-websockets} library--see the
-\href{http://cran.r-project.org/web/packages/Rook/}{Rook} package for a
-comprehensive R web service.
+For convenience, the server may optionally also service basic, non-websocket
+HTTP reuests.  For example, the basic package demo available from {\tt
+demo('websockets')} serves clients the file {\tt basic.html} located in the
+package installation path.  Additional examples are provided below. See the
+\href{http://cran.r-project.org/web/packages/Rook/}{Rook} package for an
+alternate comprehensive R web service.
 
 \subsection{Set callback functions to respond to events}
 Clients may connect to the websocket service immediately after the server is
 initialized. The server may write data to or close client connections at any
 time.  However, one must define functions to respond to incoming client events.
 
-A server supports the following incoming events:
+Each websocket server instance supports the following incoming events:
 \begin{enumerate}
 \item[] {\tt established}: Occurs when a websocket client connection is
 successfully negotiated.
@@ -178,10 +187,10 @@ as an R list;
 {\tt HEADER}: Header data returned by newer protocol versions, or
 NULL for protocol version 00. The complete frame header is returned
 as described in the IETF Draft
-{\href http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-17}
+\href{ http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-17}
 {http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-17}.
 
-The {\tt closed} and {\tt receive} function must each take one argument,
+The {\tt closed} and {\tt receive} functions must each take one argument,
 a {\tt WS} websocket client associated with the event, represented
 as an R list.
 
@@ -196,7 +205,7 @@ set_callback("established", f, server)
 \end{lstlisting}
 
 Here is an example {\tt receive} callback that receives data from a client
-connection and simply echoes it back:
+connection and simply echoes it back to the client:
 \begin{lstlisting}
 g = function(DATA, WS, ...) {
   websocket_write(DATA, WS)
@@ -305,37 +314,33 @@ serve content from files instead, use the {\tt static\_file\_service} function.
 Additionally, the {\tt static\_file\_service} function checks to see if the
 file has been updated and always uses a fresh version.
 
-Note that both convenience functions mostly ignore the GET RESOURCE and 
-all other GET request parameters. The always only return the specified HTML
-content. POST requests are always ignored by the websocket server.
-Users are free to define their own function closures to use
-instead, which may be more full-featured. Use the existing functions
-as a guide. If you really need a full-featured HTTP service,
-we reccommend using the 
-\href{http://cran.r-project.org/web/packages/Rook}{Rook} package
-instead.
+Note that both convenience functions mostly ignore the GET RESOURCE and all
+other GET or POST request parameters. They always only return the specified
+HTML content. See the section on using the package as a generic HTTP service
+below for more comprehensive examples.
 
 
 \section{R as a websocket client}
-The {\tt websockets} package includes functions that let R act as a websocket
-client. It supports protocol versions 00 and newer protocols up to at least
-version 08 (version 00 and 08 are most widely used by web browsers at the time
-of this writing).
 
-The {\tt websocket} function returns an environment similar to the 
-{\tt create\_server} function, with a single list element in the
-{\tt client\_sockets} object corresponding to the client. Set
-callback functions on the new client context to handle websocket
-events just as outlined above for websocket servers. And use
-the{\tt websocket\_write} function exactly as outlined about to
-write data through the client connection to the connected server.
+The {\tt websockets} package includes the {\tt websocket} function for creating
+clients that can interact with other websocket services.  It supports protocol
+versions 00 and newer protocols up to at least version 08 (version 00 and 08
+are most widely used by web browsers at the time of this writing).
+
+The {\tt websocket} function returns an environment similar to the {\tt
+create\_server} function, with a single list element in the enclosed {\tt
+client\_sockets} variable corresponding to the client. Set callback functions
+on the new client context to handle websocket events just as outlined above for
+websocket servers. And use the {\tt websocket\_write} function exactly as
+outlined about to write data through the client connection to the connected
+server.
 
 The following example connects to a publicly available websocket echo
 server (using the 00 protocol).
 \begin{lstlisting}
 > library(websockets)
 > client = websocket("ws://echo.websocket.org", port=80)
-> set_callback("receive", function(DATA, WS, HEADER) cat(rawToChar(DATA)), client)
+> set_callback("receive", function(DATA,WS,HEADER) cat(rawToChar(DATA)), client)
 
 > websocket_write("Testing, testing", client)
 [1] 1
@@ -347,23 +352,99 @@ Testing, testing
 \end{lstlisting}
 See the {\tt websocket} man page for more information.
 
+\section{Using the {\tt websockets} package as a basic web server}
+
+The websockets package includes functions that may be used to define a basic
+(non-websocket) web service. See the
+\href{http://cran.r-project.org/web/packages/Rook/}{Rook} package for an
+alternate comprehensive R web service.
+
+The {\tt webpage} argument to the {\tt create\_server} function specifies a
+generic HTTP callback function. The callback function must take two arguments,
+{\tt socket} and {\tt header}, that represent a low-level client socket
+connection and the full HTTP header. Users are free to define arbitrary HTTP
+handler functions to respond to the incoming generic HTTP request. The
+{\tt websockets} package provides two helper functions for use in HTTP callbacks:
+\begin{itemize}
+\item {\tt {\bf http\_vars(socket, header)}}\\
+Parse the HTTP header for GET or POST variables, returning them in a list.
+\item {\tt {\bf http\_response(socket, status, content\_type, content)}}\\
+Write a well-formed HTTP response back to the client socket, closing the connection
+when done.
+\end{itemize}
+
+The following example illustrates a basic HTTP-only service that asks the user for a
+stock ticker symbol and produces a historic plot of prices looked up from Yahoo Finance
+using the
+\href{http://cran.r-project.org/web/packages/quantmod/}{quantmod} package.
+
+\begin{lstlisting}
+library("websockets")
+library("caTools")
+library("quantmod")
+
+httpd = function(socket, header) {
+  body = "<html><body><form>Ticker: <input type='text' name='symbol'/></form>"
+  vars = http_vars(socket, header)
+  if(!is.null(vars)) {
+    getSymbols(vars$symbol)
+    f = tempfile()
+    jpeg(file=f, quality=100, width=650, heigh=450)
+    chartSeries(get(vars$symbol), name=vars$symbol, TA=c(addVo(),addBBands()))
+    dev.off()
+    img = base64encode(readBin(f,what="raw",n=1e6))
+    unlink(f)
+    body = paste(body,"<br/><img src='data:image/jpg;base64,\n", img,"'</img>")
+  }
+  http_response(socket,content=charToRaw(paste(body,"</body></html")))
+}
+
+w = create_server(webpage=httpd, port=9999)
+cat("Direct your browser to http://localhost:9999\n")
+while(TRUE) service(w)
+\end{lstlisting}
 
 \section{Tips and miscellaneous notes}
-We present a few more advanced and other miscellaneous notes in this
-section.
 \subsection{Binary data}
 Binary data is supported by IETF websocket protocol versions greater than
 00. The {\tt websockets} package supports the older 00 protocol with
 ASCII-only data, as well as binary data transfers with newer clients.
 At the date of this writing, the only commonly available web browser
-supporting the new protocols is Google Chrome (> browser version 14),
+supporting the new protocols is Google Chrome (browser version 14 and greater),
 which uses the IETF version draft-ietf-hybi-thewebsocketprotocol-08.
 
 JSON is probably a good non-binary choice to use when interacting with
 Javascript and the data size is not too large. The suggested {\tt RJSONIO}
 package helps map many native R objects to JSON and vice versa, greatly
-facilitating interaction between R and Javascript. But, JSON data is
-transferred as characters, which may incur performance and in some cases
-numeric issues.
+facilitating interaction between R and Javascript. 
+
+\subsection{Setting generic HTTP function handler callbacks}
+Assign a generic HTTP handler with {\tt set\_callback} function using the
+callback name ``static'' as in the following example:
+\begin{lstlisting}
+hello = function(socket, header) {
+  http_response(socket,content=charToRaw("HELLO"))
+}
+server = create_server(port=9999)
+set_callback('static', hello, server)
+\end{lstlisting}
+Alternatively, use the {\tt webpage} parameter in the {\tt create\_server}
+function.
+
+\subsection{Limitations}
+
+The {\tt websockets} package does not yet automatically support the IETF
+WebSocket message fragmentation protocol. Users may implement the protocol
+manually, or limit the package use to single-frame messages.
+
+The {\tt websockets} package uses the R options interface to set the
+{\tt websockets\_max\_buffer\_size} variable to a default value of
+16777216. Message frames exceeding this value will be truncated. Users may
+change the maximum buffer size value by resetting the option.
+
+Extensions as specified by the IETF draft specification are not yet supported.
+
+High-level control of the data framing headers are not yet exposed to users,
+but will be in a future package version.
 
 \end{document}

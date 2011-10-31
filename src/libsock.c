@@ -274,6 +274,7 @@ SEXP SOCK_SEND(SEXP S, SEXP DATA)
   pfds.fd = s;
   pfds.events = POLLOUT;
   h = poll(&pfds, 1, 500);
+  if(h<1) return ScalarInteger(-1);
   if(pfds.events & POLLOUT)
     return ScalarInteger(send(s, data, len, 0));
   return ScalarInteger(-1);
@@ -489,7 +490,7 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
     free(buf);
     return(ans);
   }
-  if(j<len) fprintf(stderr,"Short read\n");
+//  if(j<len) fprintf(stderr,"Short read\n");
   len = len + 2 + l2 + l3;
   if(INTEGER(EXT)[0]) {
 /* return a pointer to the recv buffer */

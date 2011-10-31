@@ -1,5 +1,4 @@
-# httpd.R: A generic and basic web service.
-
+# httpd.R: A generic and basic example non-websockets web service.
 library('websockets')
 
 httpd = function(socket, header) {
@@ -12,8 +11,6 @@ httpd = function(socket, header) {
     fn = paste(basedir,gsub("\\.\\.","",res[[1]]),sep="")
     if(fn=="./") fn = "./index.html"
     vars = http_vars(socket, header)
-print(vars)
-cat("SERVING FILE",fn,"\n")
     f = file(fn,open="rb")
     file_content = readBin(f,raw(),n=1000000L)
     close(f)
