@@ -64,7 +64,6 @@ tcpserv (int lport)
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = htonl (INADDR_ANY);     /* listen on all interfaces */
   sin.sin_port = htons (lport); /* OS assigns port if lport=0 */
-  sin.sin_port = htons (lport); /* OS assigns port if lport=0 */
 
   s = socket (AF_INET, SOCK_STREAM, 0);
   if (s == INVALID_SOCKET)
@@ -122,7 +121,11 @@ tcpconnect (char *host, int port)
 {
   struct hostent *h;
   struct sockaddr_in sa;
+#ifdef WIN32
+  SOCKET s;
+#else
   int s;
+#endif
 
   h = gethostbyname (host);
   if (!h)
@@ -157,7 +160,7 @@ tcpconnect (char *host, int port)
      }
     signal(SIGPIPE, SIG_IGN);
 #endif
-  return s;
+  return (int)s;
 }
 
 static void
@@ -199,7 +202,7 @@ SEXP MASK (SEXP DATA, SEXP KEY)
 SEXP SOCK_CLOSE (SEXP S)
 { 
 #ifdef WIN32
-  return ScalarInteger(closesocket(INTEGER(S)[0]));
+  return ScalarInteger(closesocket((SOCKET)INTEGER(S)[0]));
 #else
   return ScalarInteger(close(INTEGER(S)[0]));
 #endif
@@ -207,10 +210,14 @@ SEXP SOCK_CLOSE (SEXP S)
 
 SEXP SOCK_ACCEPT (SEXP S)
 { 
+#ifdef WIN32
+  return ScalarInteger(accept((SOCKET)INTEGER(S)[0], 0,0));
+#else
   struct sockaddr_in sa;
   socklen_t slen;
   memset(&sa, 0, sizeof (sa));
   return ScalarInteger(accept(INTEGER(S)[0], (struct sockaddr*)&sa, &slen));
+#endif
 }
 
 SEXP SOCK_NAME(SEXP S)
@@ -220,7 +227,11 @@ SEXP SOCK_NAME(SEXP S)
   int s = INTEGER(S)[0];
   slen = sizeof(sin);
   memset(&sin, 0, sizeof (sin));
+#ifdef WIN32
+  getsockname ((SOCKET)s, (struct sockaddr *) &sin, &slen);
+#else
   getsockname (s, (struct sockaddr *) &sin, &slen);
+#endif
   return ScalarInteger(ntohs(sin.sin_port));
 }
 
@@ -276,7 +287,11 @@ SEXP SOCK_SEND(SEXP S, SEXP DATA)
   h = poll(&pfds, 1, 500);
   if(h<1) return ScalarInteger(-1);
   if(pfds.events & POLLOUT)
+#ifdef WIN32
+    return ScalarInteger(send((SOCKET)s, data, len, 0));
+#else
     return ScalarInteger(send(s, data, len, 0));
+#endif
   return ScalarInteger(-1);
 }
 
@@ -300,7 +315,11 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT, SEXP BS, SEXP MAXBUFSIZE)
   pfds.events = POLLIN;
   h = poll(&pfds, 1, 50);
   while(h>0) {
+#ifdef WIN32
+    j = recv((SOCKET)s, buf, bs, 0);
+#else
     j = recv(s, buf, bs, 0);
+#endif
     if(j<1) break;
 /* If we exceed the maxbufsize, break. This leaves data
  * in the TCP RX buffer. XXX We need to tell R that this
@@ -427,7 +446,11 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   int mask;
   struct pollfd pfds;
   unsigned int j;
+#ifdef WIN32
+  SOCKET s = (SOCKET)INTEGER(S)[0];
+#else
   int s = INTEGER(S)[0];
+#endif
   double maxbufsize = REAL(MAXBUFSIZE)[0];
   int l2=0, l3=0;
 
@@ -435,7 +458,7 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   pfds.events = POLLIN;
   if(poll(&pfds, 1, 50)<1) return ans;
   memset(h1,0,2);
-  j = recv(s, h1, 2, 0);
+  j = recv(s, (char *)h1, 2, 0);
   if(j<2) return ans;
   mask = (h1[1] & (1 << 7))>0;
   c = h1[1] & ~(1 << 7);
@@ -443,14 +466,14 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   if(j==126) {
     memset(h2,0,8);
     if(poll(&pfds, 1, 50)<1) return ans;
-    j = recv(s, h2, 2, 0);
+    j = recv(s, (char *)h2, 2, 0);
     if(j<2) return ans;
     len = 256 * (unsigned int)h2[0] + (unsigned int)h2[1];
     l2 = 2;
   } else if (j==127) {
     memset(h2,0,8);
     if(poll(&pfds, 1, 50)<1) return ans;
-    j = recv(s, h2, 8, 0);
+    j = recv(s, (char *)h2, 8, 0);
     if(j<8) return ans;
 // XXX should be able to directly cast this, right?  memcpy(&len, h2, 8);
     len = h2[7];
@@ -470,7 +493,7 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   if(mask){
     memset(h3,0,4);
     if(poll(&pfds, 1, 50)<1) return ans;
-    j = recv(s, h3, 4, 0);
+    j = recv(s, (char *)h3, 4, 0);
     if(j<4) return ans;
     l3 = 4;
   }
@@ -485,7 +508,7 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
     free(buf);
     return(ans);
   }
-  j = recv(s, p, len, 0);
+  j = recv(s, (char *)p, len, 0);
   if(j<1) {
     free(buf);
     return(ans);
@@ -515,7 +538,12 @@ SEXP SOCK_RECV_FRAME00(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   char c;
   char *buf, *p;
   struct pollfd pfds;
-  int h, j, k, s = INTEGER(S)[0];
+  int h, j, k;
+#ifdef WIN32
+  SOCKET s = (SOCKET)INTEGER(S)[0];
+#else
+  int s = INTEGER(S)[0];
+#endif
   double maxbufsize = REAL(MAXBUFSIZE)[0];
   int bufsize = MBUF;
   buf = (char *)malloc(MBUF);
@@ -563,7 +591,12 @@ SEXP SOCK_RECV_HTTP_HEAD(SEXP S)
   char c;
   char *buf, *p;
   struct pollfd pfds;
-  int h, j, k, s = INTEGER(S)[0];
+  int h, j, k;
+#ifdef WIN32
+  SOCKET s = (SOCKET)INTEGER(S)[0];
+#else
+  int s = INTEGER(S)[0];
+#endif
   int bufsize = MBUF;
   buf = (char *)malloc(MBUF);
   k = 0;

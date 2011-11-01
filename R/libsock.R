@@ -47,12 +47,12 @@
 {
   if(is.raw(msg)) return(
     tryCatch(.Call('SOCK_SEND', socket, msg, PACKAGE='websockets'),
-      error=function(e) -1))
+      error=function(e) -1, interrupt=function(e) -1))
   if(is.character(msg))
     return(
       tryCatch(
         .Call('SOCK_SEND', socket, charToRaw(msg), PACKAGE='websockets'),
-        error=function(e) -1))
+        error=function(e) -1, interrupt=function(e) -1))
   stop("msg must be of data type 'Raw'")
 }
 

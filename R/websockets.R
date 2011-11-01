@@ -149,7 +149,7 @@
   invisible()
 }
 
-# Naming convention will change in a futer version: 'context' will be
+# Naming convention may change in a futer version: 'context' will be
 # replaced by 'server.' Both are present in this version for compatibility
 # with old package versions.
 `service` <- function(context, timeout=1000L, server=context)
