@@ -91,13 +91,17 @@ R that supports most of the draft IETF protocols in use today by web browsers.
 The {\tt websockets} package is especially well-suited to interaction between R
 and web scripting languages like Javascript.  Multiple simultaneous websocket
 server and client connections are supported.
+The package has few  dependencies and is written mostly in R.
+Packages are available for all major R platforms including
+GNU/Linux, OS X, and Windows.
 
-The {\tt websockets} package has few  dependencies and, written mostly in R, is
-easily portable.  It lets Javascript and other scripts embedded in web pages
-directly interact with R, bypassing traditional middleware layers like .NET,
-Java, and web servers normally used for such interaction. And in some cases,
-websockets can be much more efficient than traditional Ajax schemes for
-interacting with clients over web protocls.
+Websockets are a particularly simple way to expose R to the Web as a
+service--they let Javascript and other scripts embedded in web pages directly
+interact with R, bypassing traditional middleware layers like .NET, Java, and
+web servers normally used for such interaction. In some cases, websockets
+can be much more efficient than traditional Ajax schemes for interacting with
+clients over web protocls. Websockets also simplify service scalability in
+many cases.
 
 The {\tt websockets} package provides three primary capabilities:
 \begin{enumerate}
@@ -293,6 +297,7 @@ an HTML page that contains Javascript code to establish a websocket connection
 to R.
 
 The following example defines a basic web page:
+\newpage
 \begin{lstlisting}
 content='<html><body>
   <script>
@@ -337,6 +342,7 @@ server.
 
 The following example connects to a publicly available websocket echo
 server (using the 00 protocol).
+\newpage
 \begin{lstlisting}
 > library(websockets)
 > client = websocket("ws://echo.websocket.org", port=80)
@@ -377,7 +383,7 @@ The following example illustrates a basic HTTP-only service that asks the user f
 stock ticker symbol and produces a historic plot of prices looked up from Yahoo Finance
 using the
 \href{http://cran.r-project.org/web/packages/quantmod/}{quantmod} package.
-
+\newpage
 \begin{lstlisting}
 library("websockets")
 library("caTools")
