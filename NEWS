@@ -1,4 +1,6 @@
 Changes in 1.1.1:
+- Fixed a major bug affecting 64-bit Windows platforms.
+- Checked build with R-2.14.0.
 - Fixed minor check warning and note on some platforms.
 - Expanded generic HTTP server capability.
 - Added http_response and http_vars functions.

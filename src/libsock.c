@@ -513,7 +513,6 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
     free(buf);
     return(ans);
   }
-//  if(j<len) fprintf(stderr,"Short read\n");
   len = len + 2 + l2 + l3;
   if(INTEGER(EXT)[0]) {
 /* return a pointer to the recv buffer */

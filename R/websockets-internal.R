@@ -281,7 +281,7 @@
                     content="<html><body><h1>R Websocket Server</h1></body></html>")
 {
   n = ifelse(is.character(content),nchar(content), length(content))
-  h="HTTP/1.1 200 OK\r\nServer: R/Websocket"
+  h="HTTP/1.1 200 OK\r\nServer: R/Websocket\r\n"
   h=paste(h,"Content-Type: ",content_type, "\r\n",sep="")
   h=paste(h,"Date: ",date(),"\r\n",sep="")
   h=paste(h,"Content-Length: ",n,"\r\n\r\n",sep="")
@@ -297,7 +297,7 @@
 http_response = function(socket, status=200, content_type="text/html; charset=UTF-8", content="")
 {
   n = ifelse(is.character(content),nchar(content), length(content))
-  h=paste("HTTP/1.1",status,"OK\r\nServer: R/Websocket")
+  h=paste("HTTP/1.1",status,"OK\r\nServer: R/Websocket\r\n")
   h=paste(h,"Content-Type: ",content_type, "\r\n",sep="")
   h=paste(h,"Date: ",date(),"\r\n",sep="")
   h=paste(h,"Content-Length: ",n,"\r\n\r\n",sep="")
@@ -319,7 +319,7 @@ http_vars = function(socket, header)
   if(!is.na(GET) && nchar(GET)>1) {
     GET = lapply(strsplit(GET,"&")[[1]],function(x) strsplit(x,"=")[[1]])
     gnams = lapply(GET,function(x) x[[1]])
-    GET = lapply(GET,function(x) .urldecode(x[[2]]))
+    GET = lapply(GET,function(x) if(length(x)>1){.urldecode(x[[2]])} else{c()})
     names(GET) = gnams
   } else GET = c()
   GET
