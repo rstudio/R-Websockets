@@ -279,20 +279,25 @@ SEXP SOCK_SEND(SEXP S, SEXP DATA)
 { 
   struct pollfd pfds;
   int h;
-  const void *data = (const void *)RAW(DATA);
   size_t len = (size_t)length(DATA);
   int s = INTEGER(S)[0];
+  int ts = 0,  // total sent
+      sent = 0;
   pfds.fd = s;
   pfds.events = POLLOUT;
-  h = poll(&pfds, 1, 500);
-  if(h<1) return ScalarInteger(-1);
-  if(pfds.events & POLLOUT)
+  while(ts < len) {
+    h = poll(&pfds, 1, 500);
+    if(h<1) return ScalarInteger(-1);
+    if(pfds.events & POLLOUT) {
 #ifdef WIN32
-    return ScalarInteger(send((SOCKET)s, data, len, 0));
+      sent = send((SOCKET)s, (const void *)&(RAW(DATA)[ts]), len-ts, 0);
 #else
-    return ScalarInteger(send(s, data, len, 0));
+      sent = send(s, (const void *)&(RAW(DATA)[ts]), len-ts, 0);
 #endif
-  return ScalarInteger(-1);
+      ts+=sent;
+    } else return ScalarInteger(-1);
+  }
+  return ScalarInteger(ts);
 }
 
 /* A generic recv wrapper function */
