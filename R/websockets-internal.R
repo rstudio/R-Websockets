@@ -269,6 +269,7 @@
 .http_400 = function(socket)
 {
   .SOCK_SEND(socket,charToRaw("HTTP/1.1 400 BAD REQUEST\r\n\r\n<!DOCTYPE html><html><body><h1>400 Bad request.</h1></body></html>"))
+  TRUE
 }
 
 # Generic, very basic 200 response.
@@ -291,10 +292,12 @@
   else
     .SOCK_SEND(socket,content)
   .SOCK_CLOSE(socket)
+  TRUE
 }
 
 # A basic and generic http response function
-http_response = function(socket, status=200, content_type="text/html; charset=UTF-8", content="")
+http_response = function(socket, status=200,
+                         content_type="text/html; charset=UTF-8", content="")
 {
   n = ifelse(is.character(content),nchar(content), length(content))
   h=paste("HTTP/1.1",status,"OK\r\nServer: R/Websocket\r\n")
@@ -307,12 +310,14 @@ http_response = function(socket, status=200, content_type="text/html; charset=UT
   else
     .SOCK_SEND(socket,content)
   .SOCK_CLOSE(socket)
+  TRUE
 }
 
 # Parse http get/post variables, returning a list
 http_vars = function(socket, header)
 {
   res = strsplit(header$RESOURCE,split="\\?")[[1]]
+# XXX XXX XXX WRONG! FIX THIS
   if(header$TYPE=="POST")
     GET = rawToChar(websockets:::.SOCK_RECV_HTTP_HEAD(socket))
   else GET = res[2]

@@ -72,6 +72,7 @@
       .http_200(socket,content=file_content)
     }
   }
+  return(TRUE)
 }
 
 # A simpler example web-page service that serves up static
@@ -87,6 +88,7 @@
       .http_200(socket,content=text)
     }
   }
+  return(TRUE)
 }
 
 # Will eventually switch naming convention, for now this is a doppelganger.
@@ -197,8 +199,12 @@
 
         if(is.null(h$Upgrade)) {
 # Not a handshake request, serve a static web page
-          if(is.function(server$static)) server$static(j,h)
-          .remove_client(J)
+          if(is.function(server$static)) {
+# XXX
+# XXX CONNECTION REMAINS OPEN IF STATIC WEB SERVICE DOES NOT RETURN TRUE
+# XXX
+            if(server$static(j,h)) .remove_client(J)
+          } else .remove_client(J)
           next
         }
 # Negotiate a websocket connection
