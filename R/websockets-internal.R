@@ -143,8 +143,8 @@
 {
   if(is.character(opcode)) opcode = strtoi(opcode, 16L)
   head = rawToBits(raw(1))    # First byte of header
-  if(FIN) head[1] = as.raw(1)
-  head[5:8] = rawToBits(as.raw(opcode))[4:1]
+  if(FIN) head[8] = as.raw(1)
+  head[1:4] = rawToBits(as.raw(opcode))[1:4]
   head2 = rawToBits(raw(1))    # 2nd byte of header
   rest  = raw(0)              # Optional 3rd -- 6th bytes
   if(mask) head2[8] = as.raw(1)
