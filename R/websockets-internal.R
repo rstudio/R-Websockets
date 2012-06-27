@@ -120,7 +120,8 @@
   resp = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: WebSocket\r\nConnection: Upgrade\r\n"
   resp = paste(resp,"Sec-WebSocket-Origin: ",origin,"\r\n",sep="")
   resp = paste(resp,"Sec-WebSocket-Location: ",location,"\r\n",sep="")
-  resp = paste(resp,"Sec-WebSocket-Protocol: ",prot,"\r\n\r\n",sep="")
+  if (!is.null(prot))
+    resp = paste(resp,"Sec-WebSocket-Protocol: ",prot,"\r\n\r\n",sep="")
   c(charToRaw(resp),hash)
 }
 
@@ -132,7 +133,8 @@
   skey = base64encode(digest(charToRaw(key),algo='sha1',serialize=FALSE,raw=TRUE))
   prot = cli_header["Sec-WebSocket-Protocol"][[1]]
   resp = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
-  resp = paste(resp,"Sec-WebSocket-Protocol: ",prot,"\r\n",sep="")
+  if (!is.null(prot))
+    resp = paste(resp,"Sec-WebSocket-Protocol: ",prot,"\r\n",sep="")
   paste(resp,"Sec-WebSocket-Accept: ",skey,"\r\n\r\n",sep="")
 }
 
