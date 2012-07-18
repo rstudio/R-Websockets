@@ -647,7 +647,7 @@ SEXP SOCK_RECV_N(SEXP S, SEXP N)
 #else
   int s = INTEGER(S)[0];
 #endif
-  buf = (char *)malloc(N);
+  buf = (char *)malloc(n);
   p = buf;
   k = 0;
 
@@ -659,7 +659,7 @@ SEXP SOCK_RECV_N(SEXP S, SEXP N)
     if(j<1) break;
     k+=j;
     p+=j;
-    if(k > N) {
+    if(k > n) {
       break;
     }
     h = poll(&pfds, 1, 50);
