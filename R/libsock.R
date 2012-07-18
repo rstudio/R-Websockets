@@ -42,6 +42,11 @@
   .Call('SOCK_RECV_HTTP_HEAD', as.integer(socket), PACKAGE='websockets')
 }
 
+.SOCK_RECV_N = function(socket, N)
+{
+  .Call('SOCK_RECV_HTTP_HEAD', as.integer(socket), as.integer(N), PACKAGE='websockets')
+}
+
 # We trap the possibility of a SIGPIPE signal error during SOCK_SEND.
 .SOCK_SEND = function(socket, msg)
 {

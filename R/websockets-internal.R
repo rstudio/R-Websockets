@@ -319,7 +319,7 @@ http_vars = function(socket, header)
   res = strsplit(header$RESOURCE,split="\\?")[[1]]
 # XXX XXX XXX WRONG! FIX THIS
   if(header$TYPE=="POST")
-    GET = rawToChar(websockets:::.SOCK_RECV_HTTP_HEAD(socket))
+    GET = rawToChar(websockets:::.SOCK_RECV_N(socket, N))
   else GET = res[2]
   if(!is.na(GET) && nchar(GET)>1) {
     GET = lapply(strsplit(GET,"&")[[1]],function(x) strsplit(x,"=")[[1]])

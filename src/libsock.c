@@ -347,6 +347,7 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT, SEXP BS, SEXP MAXBUFSIZE)
 /* return a pointer to the recv buffer */
     ans = R_MakeExternalPtr ((void *)msg, R_NilValue, R_NilValue);
     R_RegisterCFinalizer (ans, recv_finalize);
+    free(buf);
   }
   else {
 /* Copy to a raw vector */
@@ -354,6 +355,7 @@ SEXP SOCK_RECV(SEXP S, SEXP EXT, SEXP BS, SEXP MAXBUFSIZE)
     p = (char *)RAW(ans);
     memcpy((void *)p, (void *)msg, k);
     free(buf);
+    free(msg);
     UNPROTECT(1);
   }
   return ans;
@@ -620,6 +622,45 @@ SEXP SOCK_RECV_HTTP_HEAD(SEXP S)
     if(k+1 > bufsize) {
       bufsize = bufsize + MBUF;
       buf = (char *)realloc(buf, bufsize);  
+    }
+    h = poll(&pfds, 1, 50);
+  }
+  PROTECT(ans=allocVector(RAWSXP,k));
+  p = (char *)RAW(ans);
+  memcpy((void *)p, (void *)buf, k);
+  free(buf);
+  UNPROTECT(1);
+  return ans;
+}
+
+/* Receive a message of exactly length N, or until error on socket. */
+SEXP SOCK_RECV_N(SEXP S, SEXP N)
+{
+  SEXP ans = R_NilValue;
+  char c;
+  char *buf, *p;
+  struct pollfd pfds;
+  int h, j, k;
+  int n = INTEGER(N)[0];
+#ifdef WIN32
+  SOCKET s = (SOCKET)INTEGER(S)[0];
+#else
+  int s = INTEGER(S)[0];
+#endif
+  buf = (char *)malloc(N);
+  p = buf;
+  k = 0;
+
+  pfds.fd = s;
+  pfds.events = POLLIN;
+  h = poll(&pfds, 1, 50);
+  while(h>0) {
+    j = recv(s, p, n-k, 0);
+    if(j<1) break;
+    k+=j;
+    p+=j;
+    if(k > N) {
+      break;
     }
     h = poll(&pfds, 1, 50);
   }
