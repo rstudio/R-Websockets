@@ -16,7 +16,8 @@
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
-    j <-.SOCK_SEND(WS$socket,.frame(length(DATA),mask=mask))
+    j <-.SOCK_SEND(WS$socket,.frame(length(DATA),mask=mask,
+                                    opcode=(if (WS$server$is.binary) { 2L } else { 1L })))
     if(j<0) {
       websocket_close(WS)
       return(j)
@@ -28,7 +29,10 @@
     }
     return(.SOCK_SEND(WS$socket, DATA))
   }
-  j <- .SOCK_SEND(WS$socket,raw(1))
+  if (WS$server$is.binary)
+    j <- .SOCK_SEND(WS$socket,raw(2))
+  else
+    j <- .SOCK_SEND(WS$socket,raw(1))
   if(j<0) {
     websocket_close(WS)
     return(j)
@@ -95,9 +99,10 @@
 `create_server` <- function(
       port=7681L,
       webpage=static_file_service(
-        paste(system.file(package='websockets'), "basic.html",sep="//")))
+        paste(system.file(package='websockets'), "basic.html",sep="//")),
+      is.binary=FALSE)
 {
-  createContext(port, webpage)
+  createContext(port, webpage, is.binary=is.binary)
 }
 
 # A server (formerly context) is an environment that stores data associated
@@ -107,7 +112,8 @@
       port=7681L,
       webpage=static_file_service(
         paste(system.file(package='websockets'), "basic.html",sep="//")),
-      server=TRUE)
+      server=TRUE,
+      is.binary=FALSE)
 {
   w <- new.env()
   assign('static', webpage, envir=w)
@@ -134,6 +140,7 @@
   assign('established', function(WS) {
                       cat("Client socket",WS$socket," has been established.\n")
                    },envir=w)
+  assign('is.binary', is.binary, envir=w)
   return(w)
 }
 
