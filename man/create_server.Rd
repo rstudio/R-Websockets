@@ -6,13 +6,14 @@
 Create a websocket server and bind it to a port.
 }
 \usage{
-create_server(port = 7681L, webpage = static_file_service(paste(system.file(package = "websockets"), "basic.html", sep = "//")))
-createContext(port = 7681L, webpage = static_file_service(paste(system.file(package = "websockets"), "basic.html", sep = "//")), server = TRUE)
+create_server(port = 7681L, webpage = static_file_service(paste(system.file(package = "websockets"), "basic.html", sep = "//")), is.binary = FALSE)
+createContext(port = 7681L, webpage = static_file_service(paste(system.file(package = "websockets"), "basic.html", sep = "//")), server = TRUE, is.binary = FALSE)
 }
 \arguments{
   \item{port}{The service port number. }
   \item{webpage}{Optionally, specifiy a function to service HTTP requests. This value may be NULL.}
   \item{server}{Set FALSE if the environment will represent a client connection (used internally by the \code{websocket} function.}
+  \item{is.binary}{The websocket connection binary transport flag.}
 }
 \details{
 The websockets package supports an arbitrary number of servers, each listening
@@ -40,9 +41,6 @@ The DATA parameter holds a RAW vector with incoming data from broadcast
 or receive events, and may be of length zero for other events.
 The WS parameter is the client web socket corresponding to the event.
 
-\strong{PLEASE NOTE THAT THE CALLBACK FUNCTION PARAMETERS HAVE CHANGED AS OF
-PACKAGE VERSION 1.1.0 AND ARE NOT BACKWARD-COMPATIBLE WITH OLDER VERSIONS.
-}
 See the \code{\link{set_callback}} function for more information.
 }
 \author{

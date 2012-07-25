@@ -371,3 +371,42 @@ create_server = function(
     list(socket=s, wsinfo=list(v=version), server=context, new=FALSE)
   context
 }
+
+# Parse http get/post variables, returning a list.
+# We don't really handle the POST case. Use a better web server
+# for that!
+http_vars = function(socket, header)
+{
+  res = strsplit(header$RESOURCE,split="\\?")[[1]]
+  if(header$TYPE=="POST") {
+    N = header[["Content-Length"]]
+    if(!is.null(N)) return(rawToChar(.SOCK_RECV_N(socket, N)))
+    else stop("Error in POST handling")
+  }
+  else GET = res[2]
+  if(!is.na(GET) && nchar(GET)>1) {
+    GET = lapply(strsplit(GET,"&")[[1]],function(x) strsplit(x,"=")[[1]])
+    gnams = lapply(GET,function(x) x[[1]])
+    GET = lapply(GET,function(x) if(length(x)>1){.urldecode(x[[2]])} else{c()})
+    names(GET) = gnams
+  } else GET = c()
+  GET
+}
+
+# A basic and generic http response function
+http_response = function(socket, status=200,
+                         content_type="text/html; charset=UTF-8", content="")
+{
+  n = ifelse(is.character(content),nchar(content), length(content))
+  h=paste("HTTP/1.1",status,"OK\r\nServer: R/Websocket\r\n")
+  h=paste(h,"Content-Type: ",content_type, "\r\n",sep="")
+  h=paste(h,"Date: ",date(),"\r\n",sep="")
+  h=paste(h,"Content-Length: ",n,"\r\n\r\n",sep="")
+  .SOCK_SEND(socket,charToRaw(h))
+  if(is.character(content))
+    .SOCK_SEND(socket,charToRaw(content))
+  else
+    .SOCK_SEND(socket,content)
+  .SOCK_CLOSE(socket)
+  TRUE
+}

@@ -344,40 +344,6 @@
   TRUE
 }
 
-# A basic and generic http response function
-http_response = function(socket, status=200,
-                         content_type="text/html; charset=UTF-8", content="")
-{
-  n = ifelse(is.character(content),nchar(content), length(content))
-  h=paste("HTTP/1.1",status,"OK\r\nServer: R/Websocket\r\n")
-  h=paste(h,"Content-Type: ",content_type, "\r\n",sep="")
-  h=paste(h,"Date: ",date(),"\r\n",sep="")
-  h=paste(h,"Content-Length: ",n,"\r\n\r\n",sep="")
-  .SOCK_SEND(socket,charToRaw(h))
-  if(is.character(content))
-    .SOCK_SEND(socket,charToRaw(content))
-  else
-    .SOCK_SEND(socket,content)
-  .SOCK_CLOSE(socket)
-  TRUE
-}
-
-# Parse http get/post variables, returning a list
-http_vars = function(socket, header)
-{
-  res = strsplit(header$RESOURCE,split="\\?")[[1]]
-# XXX XXX XXX WRONG! FIX THIS
-  if(header$TYPE=="POST")
-    GET = rawToChar(websockets:::.SOCK_RECV_N(socket, N))
-  else GET = res[2]
-  if(!is.na(GET) && nchar(GET)>1) {
-    GET = lapply(strsplit(GET,"&")[[1]],function(x) strsplit(x,"=")[[1]])
-    gnams = lapply(GET,function(x) x[[1]])
-    GET = lapply(GET,function(x) if(length(x)>1){.urldecode(x[[2]])} else{c()})
-    names(GET) = gnams
-  } else GET = c()
-  GET
-}
 
 .urldecode = function(x)
 {
