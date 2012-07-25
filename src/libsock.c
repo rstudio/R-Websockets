@@ -1,4 +1,4 @@
-/* Minimalist socket functions */
+/* Minimalist socket and websocket support functions */
 #include <stdio.h>
 #ifdef WIN32
 #include <winsock2.h>
@@ -21,6 +21,9 @@
 #include <Rinternals.h>
 #include <R_ext/Utils.h>
 #include <R_ext/Rdynload.h>
+#include <R_ext/Callbacks.h>
+#include <R_ext/eventloop.h>
+#include <R_ext/Parse.h>
 #include "libsock.h"
 
 #ifdef WIN32
@@ -669,5 +672,47 @@ SEXP SOCK_RECV_N(SEXP S, SEXP N)
   memcpy((void *)p, (void *)buf, k);
   free(buf);
   UNPROTECT(1);
+  return ans;
+}
+
+static void service_handler()
+{
+  R_len_t i;
+  ParseStatus status;
+  SEXP EXPR, CMD, ans = R_NilValue;
+  PROTECT(EXPR = allocVector(STRSXP, 1));
+  SET_STRING_ELT(EXPR,0,mkChar("websockets:::.websocket_daemon()"));
+  CMD = PROTECT(R_ParseVector(EXPR, -1, &status, R_NilValue));
+  if(status != PARSE_OK) {
+    UNPROTECT(2);
+    return;
+  }
+  for(i=0;i<length(CMD);++i) {
+    ans = eval(VECTOR_ELT(CMD,i),R_GlobalEnv);
+  }
+  UNPROTECT(2);
+}
+
+static void finalize_handler(SEXP HANDLER)
+{
+  int j;
+  InputHandler *handler = (InputHandler *)R_ExternalPtrAddr(HANDLER);
+  j = removeInputHandler(&R_InputHandlers, handler);
+}
+
+SEXP DEREG_EVENT_HANDLER(SEXP HANDLER)
+{
+  finalize_handler(HANDLER);
+  return R_NilValue;
+}
+
+SEXP REG_EVENT_HANDLER(SEXP FD)
+{
+  int fd =  INTEGER(FD)[0];
+  SEXP R_fcall;
+  SEXP ans;
+  static InputHandler *handler;
+  handler = addInputHandler(R_InputHandlers,fd,&service_handler,55);
+  ans = R_MakeExternalPtr ((void *)handler, R_NilValue, R_NilValue);
   return ans;
 }

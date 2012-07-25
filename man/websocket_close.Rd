@@ -1,26 +1,31 @@
 \name{websocket_close}
 \alias{websocket_close}
 \title{
-Close a websocket client connection.
+Close a websocket connection.
 }
 \description{
-Close a websocket client connection.
+Close a websocket server or client connection.
 }
 \usage{
 websocket_close(connection)
 }
 \arguments{
-  \item{connection}{A websocket client. See the details section for more
+  \item{connection}{A websocket client or server. See the details section for more
 information.  }
 }
 \details{
-The \code{WS} argument must be a websocket client which is represented as
-a list. All connected clients are stored in the environment associated
-with a webserver in the \code{client_sockets} list. Because each connected
-client is itself a list, be careful to access a single client element,
-for example with the '[[' indexing operator, shown here accessing the
-first client socket:
-\code{WS$client_sockets[[1]]}.
+Use \code{websocket_close} to cleanly shut down a websocket server or client
+connection.
+
+If the \code{connection} is a websocket server, all associated client connections
+will also be closed.
+
+Connected clients are stored in the environment associated with a websocket
+server in the \code{client_sockets} list. Because each connected client is
+itself an environment, be careful to access a single client element, for
+example with the '[[' indexing operator, shown here accessing the first client
+socket: \code{WS$client_sockets[[1]]}.
+
 }
 \value{
 An integer value returned by the underlying TCP socket close function
@@ -31,7 +36,4 @@ B. W. Lewis <blewis@illposed.net>
 }
 \seealso{
 \code{\link{websocket_write}}
-}
-\examples{
-##
 }

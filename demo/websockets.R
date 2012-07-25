@@ -20,8 +20,6 @@ es = function(WS)
   cat("Websocket client socket ",WS$socket," has been established.\n")
 }
 set_callback('established',es,w)
+daemonize(w)
+
 cat("Direct your web browser to http://localhost:7681\n")
-while(TRUE)
-{
-  service(w)
-}

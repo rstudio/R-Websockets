@@ -1,15 +1,55 @@
 # Notes:
-# - no extensions
-# - subprotocol is ignored for now
-# - fragmentation is not supported yet
+# This is a basic implementation of the Websockets protocol.
+# - no websocket extensions
+# - subprotocol is ignored
+# - fragmentation is not supported
 
 .onLoad = function(libname,pkgname)
 {
   options(websockets_max_buffer_size=16777216)
 }
+
 .onUnload = function(libpath)
 {
   options(websockets_max_buffer_size=NULL)
+}
+
+# A place to store misc. package state. We bolted on a lot of functions,
+# while also maintaining backwards-compatability with older package versions.
+# This is the unfortunate result.
+.websockets_env = new.env()
+
+# The event handler will evaluate 'websockets_event_handler()' in the global
+# environment with activity on the file descriptor.  It returns an external
+# pointer reference, a function pointer to an internal handler function. The
+# pointer does not need to be de-allocated.
+.register_event_handler = function(fd)
+{
+  .Call("REG_EVENT_HANDLER",as.integer(fd),.package="websockets")
+}
+.deregister_event_handler = function(handler)
+{
+  .Call("DEREG_EVENT_HANDLER",handler,.package="websockets")
+}
+
+# This is a generic daemon function that services all daemonized
+# servers and their client connections. It's called by event handlers
+# registered on the server and client sockets.
+.websocket_daemon = function()
+{
+  if(exists("server_list",envir=.websockets_env))
+    for(j in .websockets_env$server_list) service(j, timeout=10L)
+}
+
+# Remove a server from the daemon watch list
+.undaemon = function(server)
+{
+  socks = sapply(.websockets_env$server_list, function(x) x$server_socket)
+  if(length(socks)>0) {
+    .websockets_env$server_list = 
+      .websockets_env$server_list[!(socks == server$server_socket)]
+  }
+  invisible()
 }
 
 # numToBits can convert large integers to bits.
@@ -243,22 +283,29 @@
   return(list(header=frame,data=data[frame$offset:(frame$len + frame$offset - 1)]))
 }
 
-`.add_client` <- function(socket, server)
+`.add_client` = function(socket, server)
 {
-  cs <- .SOCK_ACCEPT(socket)
+  cs = .SOCK_ACCEPT(socket)
+# Check to see if an event handler exists for this server. If so,
+# register an event handler for the client socket too.
+  handler = NULL
+  if(exists("handler",envir=server) && !is.null(server$handler))
+  {
+    handler = .register_event_handler(cs)
+  }
   client_sockets = server$client_sockets
-#  client_sockets[[length(client_sockets)+1]] =
   client_sockets[[as.character(cs)]] = 
-    list(socket=cs, wsinfo=NULL, server=server, new=TRUE)
+    list(socket=cs, wsinfo=NULL, server=server, new=TRUE, handler=handler)
   assign('client_sockets',client_sockets, envir=server)
   invisible()
 }
 
-`.remove_client` <- function(socket)
+`.remove_client` = function(socket)
 {
-  server <- socket$server
-  cs <- socket$server$client_sockets
-#  cs <- cs[!(unlist(lapply(cs,function(x) x$socket)) == socket$socket)]
+  server = socket$server
+  if(!is.null(socket$handler)) .deregister_event_handler(socket$handler)
+  socket$hander = NULL
+  cs = socket$server$client_sockets
   cs[[as.character(socket$socket)]] = c()
   j = .SOCK_CLOSE(socket$socket)
   assign('client_sockets',cs, envir=server)
