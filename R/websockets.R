@@ -1,5 +1,6 @@
 daemonize = function(server)
 {
+  if(.Platform$OS.type != "unix") stop("Sorry, daemonize requires a unix-type operating system.\nUse service in an explicit event loop instead.")
   if(!exists("server_list",envir=.websockets_env))
     assign("server_list",c(),envir=.websockets_env)
   server$handler = .register_event_handler(server$server_socket)
