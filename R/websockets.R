@@ -194,8 +194,8 @@ create_server = function(
     else{
 # j holds just the socket file descriptor, or a negated descriptor
 # indicating an error condition. Retrieve the client socket from the server
-# environment in J. XXX Improve this with a hashed lookup.
-      J = server$client_sockets[[as.character(j)]]
+# environment in J.
+      J = server$client_sockets[[as.character(abs(j))]]
       if(j<0) {
 # Poll reports an error condition for this socket. Close it.
         websocket_close(J)
