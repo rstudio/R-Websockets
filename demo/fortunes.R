@@ -27,7 +27,7 @@ input[type="text"], textarea {
 <script>
 chattext = "";
 String.prototype.startsWith = function(str){return (this.indexOf(str) === 0);}
-var socket = new WebSocket("ws://localhost:7681", "chat");
+var socket = new WebSocket("ws://"+window.location.host, "chat");
 try {
   socket.onopen = function() {
     document.getElementById("wsdi_status").textContent =
@@ -162,8 +162,6 @@ while(TRUE){
     k = round(runif(1)*20 + 5)
     d = paste(fortune()[1],collapse=" ")
     low = ifelse(nrow(Words)>1000,2,0)
-# I don't like ifelse in R, it's not what I expect:
-#    Words = ifelse(nrow(Words)<1,parse(d),wmerge(Words,parse(d),low=low))
     if(nrow(Words)<1) Words = parse(d)
     else Words = wmerge(Words,parse(d),low=low)
     x = paste("CHAT","<b>R fortune says: </b>",d,sep="")

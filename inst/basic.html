@@ -92,7 +92,7 @@ String.prototype.startsWith = function(str){return (this.indexOf(str) === 0);}
 
 var socket;
 try {
-  socket = new WebSocket("ws://localhost:7681", "chat");
+  socket = new WebSocket("ws://" + window.location.host, "chat");
 
   socket.onopen = function() {
     document.getElementById("wsdi_status").textContent =

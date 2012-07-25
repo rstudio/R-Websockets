@@ -145,7 +145,8 @@ standard HTTP requests (described in greater detail below).  The {\tt
 create\_server} function returns an environment that stores data associated
 with the newly created server.  ``Callback'' functions may be assigned that
 respond to specific events. Here is an example 
-that creates a websocket server on the default port of 7681:
+that creates a websocket server on the default port of 7681 (any available port may
+be used):
 \begin{lstlisting}
 server = create_server()
 \end{lstlisting}
@@ -220,13 +221,13 @@ setCallback("receive", g, server)
 Javascript and other web script clients can very easily interact with the
 R {\tt websockets} library directly from most browsers. The listing below
 presents a very basic example client web page that includes Javascript
-code to open a connection to a local websocket server running on port
-7681. See the demo scripts in the
+code to open a connection to a websocket server.
+See the demo scripts in the
 the package installation path for more complete examples.
 \begin{lstlisting}
 <html><body>
 <script>
-socket = new WebSocket("ws://localhost:7681", "chat");
+socket = new WebSocket("ws://" + window.location.host, "chat");
 try {
   socket.onmessage = function got_packet(msg) {
     document.getElementById("output").textContent = msg.data;
@@ -261,7 +262,7 @@ prevents the R session from spinning and consuming lots of CPU time. See the
 Alternatively, use the {\tt daemonize} function to process incoming events
 asynchronously without an explicit blocking event loop. The {\tt daemonize}
 function sets up event handlers that invoke the {\tt service} function from
-within the main R event loop. The {\tt daemon} function returns control to the
+within the main R event loop. The {\tt daemonize} function returns control to the
 R console, although other R activity is still suspended during event
 processing.
 
@@ -307,7 +308,7 @@ The following example defines a basic web page:
 \begin{lstlisting}
 content='<html><body>
   <script>
-  socket = new WebSocket("ws://localhost:7681", "chat");
+  socket = new WebSocket("ws://" + window.location.host, "chat");
   try {
     socket.onmessage = function got_packet(msg) {
       document.getElementById("output").textContent = msg.data;
