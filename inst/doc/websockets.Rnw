@@ -100,7 +100,7 @@ service--they let Javascript and other scripts embedded in web pages directly
 interact with R, bypassing traditional middleware layers like .NET, Java, and
 web servers normally used for such interaction. In some cases, websockets
 can be much more efficient than traditional Ajax schemes for interacting with
-clients over web protocls. Websockets also simplify service scalability in
+clients over web protocols. Websockets also simplify service scalability in
 many cases.
 
 The {\tt websockets} package provides three main capabilities:
@@ -116,7 +116,7 @@ This guide illustrates each capability with simple examples.
 The {\tt websockets} package includes a server function that can initiate and
 respond to websocket and HTTP events over a network connection
 (websockets are an extension of standard HTTP).
-All R/Websocket server applications share the following basic recpie:
+All R/Websocket server applications share the following basic recipe:
 \begin{enumerate}
 \item Load the library.
 \item Initialize a websocket server with {\tt create\_server}.
@@ -149,11 +149,11 @@ that creates a websocket server on the default port of 7681:
 \begin{lstlisting}
 server = create_server()
 \end{lstlisting}
-Multuple websocket servers may be defined, but they must use distinct ports.
+Multiple websocket servers may be defined, but they must use distinct ports.
 
 The websocket server will respond directly to any websocket client request.
 For convenience, the server may optionally also service basic, non-websocket
-HTTP reuests.  For example, the package demo available from {\tt
+HTTP requests.  For example, the package demo available from {\tt
 demo('websockets')} serves clients the file {\tt basic.html} located in the
 package installation path.  Additional examples are provided below. See the
 \href{http://cran.r-project.org/web/packages/Rook/}{Rook} package for an
