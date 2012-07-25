@@ -103,7 +103,7 @@ can be much more efficient than traditional Ajax schemes for interacting with
 clients over web protocls. Websockets also simplify service scalability in
 many cases.
 
-The {\tt websockets} package provides three primary capabilities:
+The {\tt websockets} package provides three main capabilities:
 \begin{enumerate}
 \item An websocket service.
 \item An websocket client.
@@ -121,8 +121,7 @@ All R/Websocket server applications share the following basic recpie:
 \item Load the library.
 \item Initialize a websocket server with {\tt create\_server}.
 \item Set callback functions that will respond to desired events.
-\item Service the server's socket interface with {\tt service}, often in an
-      event loop.
+\item Service the server's socket interface with {\tt service} or {\tt daemonize}.
 \item Shutdown the server and delete the server environment when done.
 \end{enumerate}
 We outline the steps with examples below.
@@ -145,7 +144,7 @@ a network port to listen on, and an optional function closure to service
 standard HTTP requests (described in greater detail below).  The {\tt
 create\_server} function returns an environment that stores data associated
 with the newly created server.  ``Callback'' functions may be assigned that
-respond to specific websocket and generic http events. Here is an example 
+respond to specific events. Here is an example 
 that creates a websocket server on the default port of 7681:
 \begin{lstlisting}
 server = create_server()
@@ -154,7 +153,7 @@ Multuple websocket servers may be defined, but they must use distinct ports.
 
 The websocket server will respond directly to any websocket client request.
 For convenience, the server may optionally also service basic, non-websocket
-HTTP reuests.  For example, the basic package demo available from {\tt
+HTTP reuests.  For example, the package demo available from {\tt
 demo('websockets')} serves clients the file {\tt basic.html} located in the
 package installation path.  Additional examples are provided below. See the
 \href{http://cran.r-project.org/web/packages/Rook/}{Rook} package for an
@@ -240,7 +239,7 @@ catch(ex) {document.getElementById("output").textContent = "Error: " + ex;}
 {\bf Note: The {\tt websockets} package presently ignores the
 sub-protocol (``chat'' in the above example).}
 
-\subsection{Service the socket interface with {\tt service}}
+\subsection{Service the socket interface with {\tt service} or {\tt daemonize}}
 
 Incoming websocket events are queued. The {\tt service} function
 processes events on a first-come, first-served basis.
@@ -258,6 +257,13 @@ while(TRUE)
 The {\tt service} function timeout value
 prevents the R session from spinning and consuming lots of CPU time. See the
 {\tt service} help page for more information.
+
+Alternatively, use the {\tt daemonize} function to process incoming events
+asynchronously without an explicit blocking event loop. The {\tt daemonize}
+function sets up event handlers that invoke the {\tt service} function from
+within the main R event loop. The {\tt daemon} function returns control to the
+R console, although other R activity is still suspended during event
+processing.
 
 \subsection{Sending data to clients}
 The {\tt websocket\_write} and {\tt websocket\_broadcast} functions are
@@ -449,8 +455,5 @@ The {\tt websockets} package uses the R options interface to set the
 change the maximum buffer size value by resetting the option.
 
 Extensions as specified by the IETF draft specification are not yet supported.
-
-High-level control of the data framing headers are not yet exposed to users,
-but will be in a future package version.
 
 \end{document}
