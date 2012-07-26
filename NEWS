@@ -1,3 +1,8 @@
+Changes in 1.1.2:
+- Added a function called 'daemonize' that services websockets from the main
+  R event loop, returning control to the console. The previous method using
+  an explicit blocking event loop also still works.
+
 Changes in 1.1.1:
 - Fixed a major bug affecting 64-bit Windows platforms.
 - Checked build with R-2.14.0.
