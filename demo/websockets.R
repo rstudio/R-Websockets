@@ -22,5 +22,4 @@ es = function(WS)
 set_callback('established',es,w)
 
 cat("Direct your web browser to http://localhost:7681\n")
-if(.Platform$OS.type == "unix") { daemonize(w) }
-else                            { while(true) service(w) }
+while(TRUE) service(w)
