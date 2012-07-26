@@ -21,9 +21,11 @@
 #include <Rinternals.h>
 #include <R_ext/Utils.h>
 #include <R_ext/Rdynload.h>
+#ifndef WIN32
 #include <R_ext/Callbacks.h>
 #include <R_ext/eventloop.h>
 #include <R_ext/Parse.h>
+#endif
 #include "libsock.h"
 
 #ifdef WIN32
@@ -675,6 +677,7 @@ SEXP SOCK_RECV_N(SEXP S, SEXP N)
   return ans;
 }
 
+#ifndef WIN32
 static void service_handler()
 {
   R_len_t i;
@@ -716,3 +719,4 @@ SEXP REG_EVENT_HANDLER(SEXP FD)
   ans = R_MakeExternalPtr ((void *)handler, R_NilValue, R_NilValue);
   return ans;
 }
+#endif
