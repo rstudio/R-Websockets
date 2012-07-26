@@ -1,4 +1,7 @@
-Changes in 1.1.2:
+Changes PLANNDE for 1.2.0:
+- Make websocket connections work like regular R connections.
+
+Changes in 1.1.2--1.1.4:
 - Added a function called 'daemonize' that services websockets from the main
   R event loop, returning control to the console. The previous method using
   an explicit blocking event loop also still works.
