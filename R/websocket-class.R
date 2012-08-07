@@ -10,13 +10,15 @@ setGeneric("cat")
 setMethod("cat",signature(file="websocket"), 
   function(..., file)
   {
-    print("CAZART!!")
+    if(missing(sep)) sep=" "
+    websocket_write(paste(...,sep=sep),WS=file)
   }
 )
 setGeneric("save")
 setMethod("save",signature(file="websocket"),
   function(..., file)
   {
-    print("YIKES")
+    print("YIKES! This would be easier but for all that .Internal nonsense in connections..")
   }
 )
+# Add more methods that take connections (write*, serialize, etc.)...
