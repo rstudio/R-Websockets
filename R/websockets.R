@@ -1,5 +1,6 @@
 daemonize = function(server)
 {
+  if(inherits(server,"websocket")) server = server@env
   if(.Platform$OS.type != "unix") stop("Sorry, daemonize requires a unix-type operating system.\nUse service in an explicit event loop instead.")
   if(!exists("server_list",envir=.websockets_env))
     assign("server_list",c(),envir=.websockets_env)
@@ -11,6 +12,7 @@ daemonize = function(server)
 websocket_write = function(DATA, WS)
 {
   mask = FALSE
+  if(inherits(WS,"websocket")) WS = WS@env
   if(is.null(WS$server)) {
 # Then this is a probably client websocket connection.
     mask = TRUE
@@ -54,12 +56,14 @@ websocket_write = function(DATA, WS)
 # "Broadcast" data to all the client websockets attached to the server.
 websocket_broadcast = function(DATA, server)
 {
+  if(inherits(server,"websocket")) server = server@env
   lapply(server$client_sockets, function(x) websocket_write(DATA,x))
 }
 
-set_callback = function(id, f, envir) assign(id, f, envir=envir)
-setCallback = function(id, f, envir)
+setCallback = function(id, f, envir) set_allback(id,f,envir)
+set_callback = function(id, f, envir)
 {
+  if(inherits(envir,"websocket")) envir = envir@env
   assign(id, f, envir=envir)
 }
 
@@ -113,7 +117,10 @@ create_server = function(
         paste(system.file(package='websockets'), "basic.html",sep="//")),
       is.binary=FALSE)
 {
-  createContext(port, webpage, is.binary=is.binary)
+  w = new("websocket",port=port)
+  w@env = createContext(port, webpage, is.binary=is.binary)
+  set_callback ("static", webpage, w@env)
+  w
 }
 
 # A server (formerly context) is an environment that stores data associated
@@ -162,6 +169,7 @@ create_server = function(
 # Cleanly close any websocket connection (client or server)
 `websocket_close` = function(connection)
 {
+  if(inherits(connection,"websocket")) connection = connection@env
   if(!is.null(connection$socket)) .remove_client(connection)
   else {
 # This is not a client socket, perhaps a server?
@@ -183,6 +191,7 @@ create_server = function(
 # with old package versions.
 `service` = function(context, timeout=1000L, server=context)
 {
+  if(inherits(server,"websocket")) server = server@env
   socks = c(server$server_socket,
     unlist(lapply(server$client_sockets,function(x) x$socket)))
   if(length(socks)<1) return(invisible())

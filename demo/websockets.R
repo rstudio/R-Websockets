@@ -1,7 +1,6 @@
 # Simple example
 require(websockets)
 w = create_server()
-w$DEBUG=TRUE
 f = function(DATA, WS, ...)
 {
   cat("Receive callback\n")

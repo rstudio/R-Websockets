@@ -1,2 +1,5 @@
 useDynLib(websockets)
 exportPattern("^[[:alpha:]]+")
+
+exportClasses(websocket)
+#exportMethods(cat)
