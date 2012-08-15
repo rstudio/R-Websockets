@@ -12,7 +12,6 @@ daemonize = function(server)
 websocket_write = function(DATA, WS)
 {
   mask = FALSE
-  if(inherits(WS,"websocket")) WS = WS@env
   if(is.null(WS$server)) {
 # Then this is a probably client websocket connection.
     mask = TRUE
@@ -28,18 +27,21 @@ websocket_write = function(DATA, WS)
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
-    j =.SOCK_SEND(WS$socket,.frame(length(DATA),mask=mask,
-                                    opcode=(if (WS$server$is.binary) { 2L } else { 1L })))
-    if(j<0) {
-      websocket_close(WS)
-      return(j)
-    }
+    #j =.SOCK_SEND(WS$socket,.frame(length(DATA),mask=mask,
+    #                                opcode=(if (WS$server$is.binary) { 2L } else { 1L })))
+     frame = .frame(length(DATA),mask=mask, opcode=(if (WS$server$is.binary) { 2L } else { 1L }))
     if(mask) {
       key = as.raw(floor(runif(4)*256))
-      j = .SOCK_SEND(WS$socket, key)
-      return(.SOCK_SEND(WS$socket, .MASK(DATA,key)))
+      #j = .SOCK_SEND(WS$socket, key)
+      mask = .MASK(DATA,key)
+    } else {
+       key = raw(0)
+       mask = raw(0)
     }
-    return(.SOCK_SEND(WS$socket, DATA))
+    j = .SOCK_SEND(WS$socket, c(frame,key,mask,DATA))
+
+    if(j<0) websocket_close(WS)
+    return(j)
   }
   if (WS$server$is.binary)
     j = .SOCK_SEND(WS$socket,raw(2))
