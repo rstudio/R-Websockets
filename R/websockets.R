@@ -62,7 +62,7 @@ websocket_broadcast = function(DATA, server)
   lapply(server$client_sockets, function(x) websocket_write(DATA,x))
 }
 
-setCallback = function(id, f, envir) set_allback(id,f,envir)
+setCallback = function(id, f, envir) set_callback(id,f,envir)
 set_callback = function(id, f, envir)
 {
   if(inherits(envir,"websocket")) envir = envir@env
@@ -120,7 +120,13 @@ create_server = function(
       is.binary=FALSE)
 {
   w = new("websocket",port=port)
-  w@env = createContext(port, webpage, is.binary=is.binary)
+  ctx = createContext(port, webpage, is.binary=is.binary)
+
+  # createContext can fail on binding to a socket
+  if (is.null(ctx))
+     stop("Cannot create a server context (via createContext())")
+
+  w@env = ctx
   set_callback ("static", webpage, w@env)
   w
 }
@@ -138,10 +144,15 @@ create_server = function(
   w = new.env()
   assign('static', webpage, envir=w)
 # server_socket is the file descriptor associated with this server
-  if(server)
-    assign('server_socket', .SOCK_SERVE(port), envir=w)
-  else
+  if(server){
+    socket = .SOCK_SERVE(port)
+    if (socket != -1L)
+       assign('server_socket', socket, envir=w)
+    else
+       return(NULL)
+  } else {
     assign('server_socket', -1L, envir=w)
+  }
 # client_sockets is a list of connected clients, each of which is a
 # list with at least the following slots:
 # socket  (file descriptor)
@@ -182,8 +193,10 @@ create_server = function(
       connection$handler = NULL
       .undaemon(connection)
     }
-    if(!is.null(connection$server_socket))
+    if(!is.null(connection$server_socket)){
       .SOCK_CLOSE(connection$server_socket)
+      connection$server_socket = NULL
+    }
   }
   invisible()
 }
