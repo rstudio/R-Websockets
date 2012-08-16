@@ -27,6 +27,7 @@
 #include <R_ext/Parse.h>
 #endif
 #include "libsock.h"
+#include <errno.h>
 
 #ifdef WIN32
 WSADATA wsaData;
@@ -73,6 +74,7 @@ tcpserv (int lport)
   s = socket (AF_INET, SOCK_STREAM, 0);
   if (s == INVALID_SOCKET)
     {
+      warning("R-Websockets(tcpserv): socket() failed");
       return -1;
     } 
   n = 1;
@@ -84,6 +86,7 @@ tcpserv (int lport)
 #else
       close (s);
 #endif
+      warning("R-Websockets(tcpserv): setsockopt() failed");
       return -1;
     }
   if (bind (s, (struct sockaddr *) &sin, sizeof (sin)) < 0)
@@ -93,6 +96,7 @@ tcpserv (int lport)
 #else
       close (s);
 #endif
+      warning("R-Websockets(tcpserv): bind() failed");
       return -1;
     }
   if (listen (s, BACKLOG) < 0)
@@ -102,6 +106,7 @@ tcpserv (int lport)
 #else
       close (s);
 #endif
+      warning("R-Websockets(tcpserv): listen() failed");
       return -1;
     }
 #ifdef WIN32
@@ -111,10 +116,12 @@ tcpserv (int lport)
     if(fcntl(s, F_SETFL, O_NONBLOCK) < 0)
      {
        close(s);
+       warning("R-Websockets(tcpserv): fcntl() failed");
        return -1;
      }
     signal(SIGPIPE, SIG_IGN);
 #endif
+
   return (int)s;
 }
 
@@ -219,7 +226,7 @@ SEXP SOCK_ACCEPT (SEXP S)
   return ScalarInteger(accept((SOCKET)INTEGER(S)[0], 0,0));
 #else
   struct sockaddr_in sa;
-  socklen_t slen;
+  socklen_t slen = sizeof(sa);
   memset(&sa, 0, sizeof (sa));
   return ScalarInteger(accept(INTEGER(S)[0], (struct sockaddr*)&sa, &slen));
 #endif
@@ -642,7 +649,6 @@ SEXP SOCK_RECV_HTTP_HEAD(SEXP S)
 SEXP SOCK_RECV_N(SEXP S, SEXP N)
 {
   SEXP ans = R_NilValue;
-  char c;
   char *buf, *p;
   struct pollfd pfds;
   int h, j, k;
@@ -682,7 +688,7 @@ static void service_handler()
 {
   R_len_t i;
   ParseStatus status;
-  SEXP EXPR, CMD, ans = R_NilValue;
+  SEXP EXPR, CMD;
   PROTECT(EXPR = allocVector(STRSXP, 1));
   SET_STRING_ELT(EXPR,0,mkChar("websockets:::.websocket_daemon()"));
   CMD = PROTECT(R_ParseVector(EXPR, -1, &status, R_NilValue));
@@ -691,16 +697,16 @@ static void service_handler()
     return;
   }
   for(i=0;i<length(CMD);++i) {
-    ans = eval(VECTOR_ELT(CMD,i),R_GlobalEnv);
+    /* ans = eval(VECTOR_ELT(CMD,i),R_GlobalEnv); */
+    eval(VECTOR_ELT(CMD,i),R_GlobalEnv);
   }
   UNPROTECT(2);
 }
 
 static void finalize_handler(SEXP HANDLER)
 {
-  int j;
   InputHandler *handler = (InputHandler *)R_ExternalPtrAddr(HANDLER);
-  j = removeInputHandler(&R_InputHandlers, handler);
+  removeInputHandler(&R_InputHandlers, handler);
 }
 
 SEXP DEREG_EVENT_HANDLER(SEXP HANDLER)
@@ -712,7 +718,6 @@ SEXP DEREG_EVENT_HANDLER(SEXP HANDLER)
 SEXP REG_EVENT_HANDLER(SEXP FD)
 {
   int fd =  INTEGER(FD)[0];
-  SEXP R_fcall;
   SEXP ans;
   static InputHandler *handler;
   handler = addInputHandler(R_InputHandlers,fd,&service_handler,55);
