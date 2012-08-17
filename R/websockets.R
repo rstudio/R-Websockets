@@ -122,10 +122,6 @@ create_server = function(
   w = new("websocket",port=port)
   ctx = createContext(port, webpage, is.binary=is.binary)
 
-  # createContext can fail on binding to a socket
-  if (is.null(ctx))
-     stop("Cannot create a server context (via createContext())")
-
   w@env = ctx
   set_callback ("static", webpage, w@env)
   w
@@ -149,7 +145,7 @@ create_server = function(
     if (socket != -1L)
        assign('server_socket', socket, envir=w)
     else
-       return(NULL)
+       stop('Unable to bind socket on port ' , port, '; is it already in use?')
   } else {
     assign('server_socket', -1L, envir=w)
   }

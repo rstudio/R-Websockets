@@ -1,5 +1,8 @@
-Changes PLANNDE for 1.2.0:
-- Make websocket connections work like regular R connections.
+Changes in 1.1.5:
+- Signal an error when unable to bind socket listener (as opposed to failing
+  silently).
+- Fixed a bug where server socket could be inadvertently closed when an older
+  socket was finalized by the gc.
 
 Changes in 1.1.2--1.1.4:
 - Added a function called 'daemonize' that services websockets from the main
