@@ -12,7 +12,6 @@ daemonize = function(server)
 websocket_write = function(DATA, WS)
 {
   mask = FALSE
-  if(inherits(WS,"websocket")) WS = WS@env
   if(is.null(WS$server)) {
 # Then this is a probably client websocket connection.
     mask = TRUE
@@ -28,18 +27,21 @@ websocket_write = function(DATA, WS)
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
-    j =.SOCK_SEND(WS$socket,.frame(length(DATA),mask=mask,
-                                    opcode=(if (WS$server$is.binary) { 2L } else { 1L })))
-    if(j<0) {
-      websocket_close(WS)
-      return(j)
-    }
+    #j =.SOCK_SEND(WS$socket,.frame(length(DATA),mask=mask,
+    #                                opcode=(if (WS$server$is.binary) { 2L } else { 1L })))
+     frame = .frame(length(DATA),mask=mask, opcode=(if (WS$server$is.binary) { 2L } else { 1L }))
     if(mask) {
       key = as.raw(floor(runif(4)*256))
-      j = .SOCK_SEND(WS$socket, key)
-      return(.SOCK_SEND(WS$socket, .MASK(DATA,key)))
+      #j = .SOCK_SEND(WS$socket, key)
+      mask = .MASK(DATA,key)
+    } else {
+       key = raw(0)
+       mask = raw(0)
     }
-    return(.SOCK_SEND(WS$socket, DATA))
+    j = .SOCK_SEND(WS$socket, c(frame,key,mask,DATA))
+
+    if(j<0) websocket_close(WS)
+    return(j)
   }
   if (WS$server$is.binary)
     j = .SOCK_SEND(WS$socket,raw(2))
@@ -60,7 +62,7 @@ websocket_broadcast = function(DATA, server)
   lapply(server$client_sockets, function(x) websocket_write(DATA,x))
 }
 
-setCallback = function(id, f, envir) set_allback(id,f,envir)
+setCallback = function(id, f, envir) set_callback(id,f,envir)
 set_callback = function(id, f, envir)
 {
   if(inherits(envir,"websocket")) envir = envir@env
@@ -118,7 +120,13 @@ create_server = function(
       is.binary=FALSE)
 {
   w = new("websocket",port=port)
-  w@env = createContext(port, webpage, is.binary=is.binary)
+  ctx = createContext(port, webpage, is.binary=is.binary)
+
+  # createContext can fail on binding to a socket
+  if (is.null(ctx))
+     stop("Cannot create a server context (via createContext())")
+
+  w@env = ctx
   set_callback ("static", webpage, w@env)
   w
 }
@@ -136,10 +144,15 @@ create_server = function(
   w = new.env()
   assign('static', webpage, envir=w)
 # server_socket is the file descriptor associated with this server
-  if(server)
-    assign('server_socket', .SOCK_SERVE(port), envir=w)
-  else
+  if(server){
+    socket = .SOCK_SERVE(port)
+    if (socket != -1L)
+       assign('server_socket', socket, envir=w)
+    else
+       return(NULL)
+  } else {
     assign('server_socket', -1L, envir=w)
+  }
 # client_sockets is a list of connected clients, each of which is a
 # list with at least the following slots:
 # socket  (file descriptor)
@@ -180,8 +193,10 @@ create_server = function(
       connection$handler = NULL
       .undaemon(connection)
     }
-    if(!is.null(connection$server_socket))
+    if(!is.null(connection$server_socket)){
       .SOCK_CLOSE(connection$server_socket)
+      connection$server_socket = NULL
+    }
   }
   invisible()
 }
