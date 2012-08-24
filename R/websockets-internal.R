@@ -224,7 +224,32 @@
 # pointer will be supported soon (external pointer messages can be unmasked
 # in place).
 #
-# The bit ordering is a bit hard to follow, sorry.
+# TODO: Test websockets on big endian arch
+#
+# The bit ordering is hard to follow. Here's an explanation of the first
+# four bytes of the frame from the perspective of a little endian arch.
+# The index at the top describes the bit order.
+#
+#   8 7 6 5 4 3 2 1 8 7 6 5 4 3 2 1 8 7 6 5 4 3 2 1 8 7 6 5 4 3 2 1
+#  +-+-+-+-+-------+-+-------------+-------------------------------+
+#  |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
+#  |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
+#  |N|V|V|V|       |S|             |   (if payload len==126/127)   |
+#  | |1|2|3|       |K|             |                               |
+#  +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
+#
+#  So for instance suppose data contains the four bytes as a raw vector
+#  length four. Then:
+#
+#  head <- rawToBits(data[1])
+#
+#  head[8] is the FIN bit
+#  head[7] is the RSV1 bit
+#  head[6] is the RSV2 bit
+#  head[5] is the RSV3 bit
+#
+#  as.integer(packBits(head[1:4])) is the opcode
+
 # This version of unframe returns a list with two elements:
 # header: the frame header
 # data:   the unmasked frame data payload or NULL
@@ -239,9 +264,9 @@
   frame$offset = 3L  # default 2-byte header
   if(is.raw(data)) {
     head = rawToBits(data[1])
-    if(head[1]) frame$FIN = 1L
+    if(head[8]) frame$FIN = 1L
     x = rawToBits(raw(1))
-    x[1:4] = head[8:5]
+    x[1:4] = head[1:4]
     frame$opcode = as.integer(packBits(x))
     head2 = rawToBits(data[2])
     if(head2[8]) frame$mask = TRUE
