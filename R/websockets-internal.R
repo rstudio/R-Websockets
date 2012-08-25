@@ -224,22 +224,21 @@
 # pointer will be supported soon (external pointer messages can be unmasked
 # in place).
 #
-# TODO: Test websockets on big endian arch
+# The bit ordering is hard to follow for the first two bytes, so here's
+# an explanation. The index at the top of the frame denotes the bit order.
 #
-# The bit ordering is hard to follow. Here's an explanation of the first
-# four bytes of the frame from the perspective of a little endian arch.
-# The index at the top describes the bit order.
+#   8 7 6 5 4 3 2 1 8 7 6 5 4 3 2 1
+#  +-+-+-+-+-------+-+-------------+
+#  |F|R|R|R| opcode|M| Payload len |
+#  |I|S|S|S|  (4)  |A|     (7)     |
+#  |N|V|V|V|       |S|             |
+#  | |1|2|3|       |K|             |
+#  +-+-+-+-+-------+-+-------------+
 #
-#   8 7 6 5 4 3 2 1 8 7 6 5 4 3 2 1 8 7 6 5 4 3 2 1 8 7 6 5 4 3 2 1
-#  +-+-+-+-+-------+-+-------------+-------------------------------+
-#  |F|R|R|R| opcode|M| Payload len |    Extended payload length    |
-#  |I|S|S|S|  (4)  |A|     (7)     |             (16/64)           |
-#  |N|V|V|V|       |S|             |   (if payload len==126/127)   |
-#  | |1|2|3|       |K|             |                               |
-#  +-+-+-+-+-------+-+-------------+ - - - - - - - - - - - - - - - +
+#  Suppose the raw vector 'data' contains the first two bytes as they come
+#  over the wire. Then:
 #
-#  So for instance suppose data contains the four bytes as a raw vector
-#  length four. Then:
+#  First Byte
 #
 #  head <- rawToBits(data[1])
 #
@@ -248,8 +247,24 @@
 #  head[6] is the RSV2 bit
 #  head[5] is the RSV3 bit
 #
-#  as.integer(packBits(head[1:4])) is the opcode
-
+#  x <- rawToBits(raw(1)) creates a zeroed bit field length 8
+#
+#  x[1:4] = head[1:4]
+#
+#  as.integer(packBits(x[1:4])) is the opcode
+#
+#  Second Byte
+#  
+#  head <- rawToBits(data[2])
+#
+#  head[8] is the mask bit
+#
+#  x <- rawToBits(raw(1)) creates a zeroed bit field length 8
+#
+#  x[1:7] = head[1:7]
+#
+#  as.integer(packBits(x[1:7])) is the payload len
+#
 # This version of unframe returns a list with two elements:
 # header: the frame header
 # data:   the unmasked frame data payload or NULL
