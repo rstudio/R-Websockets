@@ -224,7 +224,47 @@
 # pointer will be supported soon (external pointer messages can be unmasked
 # in place).
 #
-# The bit ordering is a bit hard to follow, sorry.
+# The bit ordering is hard to follow for the first two bytes, so here's
+# an explanation. The index at the top of the frame denotes the bit order.
+#
+#   8 7 6 5 4 3 2 1 8 7 6 5 4 3 2 1
+#  +-+-+-+-+-------+-+-------------+
+#  |F|R|R|R| opcode|M| Payload len |
+#  |I|S|S|S|  (4)  |A|     (7)     |
+#  |N|V|V|V|       |S|             |
+#  | |1|2|3|       |K|             |
+#  +-+-+-+-+-------+-+-------------+
+#
+#  Suppose the raw vector 'data' contains the first two bytes as they come
+#  over the wire. Then:
+#
+#  First Byte
+#
+#  head <- rawToBits(data[1])
+#
+#  head[8] is the FIN bit
+#  head[7] is the RSV1 bit
+#  head[6] is the RSV2 bit
+#  head[5] is the RSV3 bit
+#
+#  x <- rawToBits(raw(1)) creates a zeroed bit field length 8
+#
+#  x[1:4] = head[1:4]
+#
+#  as.integer(packBits(x[1:4])) is the opcode
+#
+#  Second Byte
+#  
+#  head <- rawToBits(data[2])
+#
+#  head[8] is the mask bit
+#
+#  x <- rawToBits(raw(1)) creates a zeroed bit field length 8
+#
+#  x[1:7] = head[1:7]
+#
+#  as.integer(packBits(x[1:7])) is the payload len
+#
 # This version of unframe returns a list with two elements:
 # header: the frame header
 # data:   the unmasked frame data payload or NULL
@@ -239,9 +279,9 @@
   frame$offset = 3L  # default 2-byte header
   if(is.raw(data)) {
     head = rawToBits(data[1])
-    if(head[1]) frame$FIN = 1L
+    if(head[8]) frame$FIN = 1L
     x = rawToBits(raw(1))
-    x[1:4] = head[8:5]
+    x[1:4] = head[1:4]
     frame$opcode = as.integer(packBits(x))
     head2 = rawToBits(data[2])
     if(head2[8]) frame$mask = TRUE
