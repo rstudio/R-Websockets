@@ -11,6 +11,11 @@ daemonize = function(server)
 # Write data to a websocket
 websocket_write = function(DATA, WS)
 {
+  .websocket_write(DATA, WS)
+}
+
+.websocket_write = function(DATA, WS, OPCODE=NA)
+{
   mask = FALSE
   if(is.null(WS$server)) {
 # Then this is a probably client websocket connection.
@@ -27,9 +32,8 @@ websocket_write = function(DATA, WS)
   if(is.character(DATA)) DATA=charToRaw(DATA)
   if(!is.raw(DATA)) stop("DATA must be character or raw")
   if(v==4){
-    #j =.SOCK_SEND(WS$socket,.frame(length(DATA),mask=mask,
-    #                                opcode=(if (WS$server$is.binary) { 2L } else { 1L })))
-     frame = .frame(length(DATA),mask=mask, opcode=(if (WS$server$is.binary) { 2L } else { 1L }))
+    opcode = ifelse(!is.na(OPCODE), OPCODE, ifelse(WS$server$is.binary, 2L, 1L))
+    frame = .frame(length(DATA),mask=mask, opcode=opcode)
     if(mask) {
       key = as.raw(floor(runif(4)*256))
       #j = .SOCK_SEND(WS$socket, key)
@@ -285,6 +289,8 @@ create_server = function(
         } else if(DATA$header$opcode == 8) {
           websocket_close(J)
           next
+        } else if (DATA$header$opcode == 9) { # ping
+          .websocket_write(DATA$data, J, OPCODE=0xAL)
         }
       }
     }
