@@ -461,10 +461,10 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   unsigned char h2[8];  // extended payload length
   unsigned char h3[4];  // masking key
   unsigned char c;
-  unsigned long long len, l;
-  int mask;
+  unsigned long long j, len, l;
+  int mask, fin, rsv1, rsv2, rsv3, opcode;
   struct pollfd pfds;
-  unsigned int j;
+
 #ifdef WIN32
   SOCKET s = (SOCKET)INTEGER(S)[0];
 #else
@@ -479,9 +479,17 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
   memset(h1,0,2);
   j = recv(s, (char *)h1, 2, 0);
   if(j<2) return ans;
+  
+  fin = (h1[0] & (1 << 7))>0;
+  rsv1 = (h1[0] & (1 << 6))>0;
+  rsv2 = (h1[0] & (1 << 5))>0;
+  rsv3 = (h1[0] & (1 << 4))>0;
+  opcode = (h1[0] & 0x0f);
+
   mask = (h1[1] & (1 << 7))>0;
   c = h1[1] & ~(1 << 7);
   j = c;
+
   if(j==126) {
     memset(h2,0,8);
     if(poll(&pfds, 1, 50)<1) return ans;
@@ -516,22 +524,30 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
     if(j<4) return ans;
     l3 = 4;
   }
+
+  /* printf("fin=%1d,rsv1=%1d,rsv2=%1d,rsv3=%1d,opcode=%1d,len=%llu\n",
+        fin,rsv1,rsv2,rsv3,opcode,len); */
+
   buf = (char *)malloc(2 + l2 + l3 + len);
   p = buf;
   memcpy(p, h1, 2); p+=2;
   if(l2>0) memcpy(p, h2, l2); p+=l2;
   if(l3>0) memcpy(p, h3, l3); p+=l3;
-  j = (unsigned int)len;
-// XXX can fail here, need nonblocking
-  if(poll(&pfds, 1, 50)<1){
-    free(buf);
-    return(ans);
-  }
-  j = recv(s, (char *)p, len, 0);
-  if(j<1) {
-    free(buf);
-    return(ans);
-  }
+
+  j = l = 0;
+  // XXX can fail here, need nonblocking
+  do {
+    if(poll(&pfds, 1, 50)<1){
+      free(buf);
+      return(ans);
+    }
+    j = recv(s, (char *)p+l, len, 0);
+    if(j<1) {
+      free(buf);
+      return(ans);
+    }
+    l += j;
+  } while(l < len);
   len = len + 2 + l2 + l3;
   if(INTEGER(EXT)[0]) {
 /* return a pointer to the recv buffer */
