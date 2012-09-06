@@ -453,7 +453,7 @@ mingw_poll (struct pollfd *fds, unsigned int nfds, int timo)
 
 
 /* Receive exactly one non-00 protocol frame */
-SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
+SEXP SOCK_RECV_FRAME(SEXP S, SEXP MAXBUFSIZE)
 {
   SEXP ans = R_NilValue;
   char *buf, *p;
@@ -549,24 +549,18 @@ SEXP SOCK_RECV_FRAME(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
     l += j;
   } while(l < len);
   len = len + 2 + l2 + l3;
-  if(INTEGER(EXT)[0]) {
-/* return a pointer to the recv buffer */
-    ans = R_MakeExternalPtr ((void *)buf, R_NilValue, R_NilValue);
-    R_RegisterCFinalizer (ans, recv_finalize);
-  }
-  else {
-/* Copy to a raw vector */
-    PROTECT(ans=allocVector(RAWSXP,len));
-    p = (char *)RAW(ans);
-    memcpy((void *)p, (void *)buf, len);
-    free(buf);
-    UNPROTECT(1);
-  }
+
+  PROTECT(ans=allocVector(RAWSXP,len));
+  p = (char *)RAW(ans);
+  memcpy((void *)p, (void *)buf, len);
+  free(buf);
+  UNPROTECT(1);
+
   return ans;
 }
 
 /* Receive exactly one 00 protocol frame, damned inefficiently.  */
-SEXP SOCK_RECV_FRAME00(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
+SEXP SOCK_RECV_FRAME00(SEXP S, SEXP MAXBUFSIZE)
 {
   SEXP ans = R_NilValue;
   char c;
@@ -602,19 +596,14 @@ SEXP SOCK_RECV_FRAME00(SEXP S, SEXP EXT, SEXP MAXBUFSIZE)
     }
     h = poll(&pfds, 1, 50);
   }
-  if(INTEGER(EXT)[0]) {
-/* return a pointer to the recv buffer */
-    ans = R_MakeExternalPtr ((void *)buf, R_NilValue, R_NilValue);
-    R_RegisterCFinalizer (ans, recv_finalize);
-  }
-  else {
-/* Copy to a raw vector */
-    PROTECT(ans=allocVector(RAWSXP,k));
-    p = (char *)RAW(ans);
-    memcpy((void *)p, (void *)buf, k);
-    free(buf);
-    UNPROTECT(1);
-  }
+
+  /* Copy to a raw vector */
+  PROTECT(ans=allocVector(RAWSXP,k));
+  p = (char *)RAW(ans);
+  memcpy((void *)p, (void *)buf, k);
+  free(buf);
+  UNPROTECT(1);
+
   return ans;
 }
 
