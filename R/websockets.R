@@ -172,6 +172,28 @@ create_server = function(
                       cat("Client socket",WS$socket," has been established.\n")
                    },envir=w)
   assign('is.binary', is.binary, envir=w)
+
+  w$accumulate_fragment = function(WS,frame){
+    if (is.null(WS$frames))
+      WS$frames = list()
+    WS$frames[[length(WS$frames)+1]] = frame
+  }
+
+  w$coalesce_fragments = function(WS,frame){
+    if (is.null(WS$frames)) return(frame)
+
+    WS$frames[[length(WS$frames)+1]] = frame
+    
+    # First frame contains the opcode, so we will coalesce all data parts into
+    # that one.
+    frame = WS$frames[[1]]
+    frame$data = unlist(lapply(WS$frames,function(f) f$data))
+
+    WS$frames = NULL
+
+    frame
+  }
+
   reg.finalizer(w, function(e) {websocket_close(e)})
   return(w)
 }
@@ -196,6 +218,12 @@ create_server = function(
     }
   }
   invisible()
+}
+
+websocket_ping = function(connection){
+}
+
+websocket_pong = function(connection){
 }
 
 # Naming convention may change in a futer version: 'context' will be
@@ -288,34 +316,48 @@ create_server = function(
     } 
     
     # 3. Client Websocket Frame to read and respond to
-    if (J$wsinfo$v < 4)
-      x = .SOCK_RECV_FRAME00(j) # Old protocol
-    else
-      x = .SOCK_RECV_FRAME(j) # Try the latest protocol
 
-    if (length(x)<1) {
+    # 3.1 Old Protocol
+
+    if (J$wsinfo$v < 4) {
+      frame = .SOCK_RECV_FRAME00(j) # Old protocol
+
+      if (length(frame)<1) {
       # Can't have an empty transmission, close the socket.
-      websocket_close(J)
+        websocket_close(J)
+        next
+      }
+
+      # Drop payload if we can't use it.
+      if (!is.function(server$receive)) next
+
+      server$receive(WS=J, DATA=.v00_unframe(frame), HEADER=NULL)
+
       next
     }
 
-    # Burn payload if we can't use it.
-    if (!is.function(server$receive)) next
+	  # 3.2 New Protocol
 
-    if (J$wsinfo$v < 4) {
-      server$receive(WS=J, DATA=.v00_unframe(x), HEADER=NULL)
-    } else {
-      DATA = .unframe(x)
-      if (DATA$header$opcode < 3){
-        server$receive(WS=J, DATA=DATA$data, HEADER=DATA$header)
-      } else if (DATA$header$opcode == 8) {
+    frame = .SOCK_RECV_FRAME(j) # Try the latest protocol
+
+    if (frame$header$fin == 0){
+      server$store_fragment(WS=J,frame)
+    } else if (frame$header$fin == 1){
+      frame = server$coalesce_fragments(WS=J,frame)
+      if (frame$header$opcode %in% c(0,1,2) && is.function(server$receive)){
+        server$receive(WS=J, DATA=frame$data, HEADER=frame$header)
+      } else if (frame$header$opcode == 8) {
         websocket_close(J)
-        next
+      } else if (frame$header$opcode == 9) {
+        websocket_pong(J)
+      } else if (frame$header$opcode == 10) {
+        websocket_ping(J)
+      } else {
+        # ignore frame
       }
     }
 
   }
-
 }
 
 
