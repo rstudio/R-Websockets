@@ -220,11 +220,6 @@ create_server = function(
   invisible()
 }
 
-websocket_ping = function(connection){
-}
-
-websocket_pong = function(connection){
-}
 
 # Naming convention may change in a futer version: 'context' will be
 # replaced by 'server.' Both are present in this version for compatibility
@@ -349,9 +344,9 @@ websocket_pong = function(connection){
       } else if (frame$header$opcode == 8) {
         websocket_close(J)
       } else if (frame$header$opcode == 9) {
-        websocket_pong(J)
+        .websocket_pong(J,frame)
       } else if (frame$header$opcode == 10) {
-        websocket_ping(J)
+        .websocket_ping(J,frame)
       } else {
         # ignore frame
       }
