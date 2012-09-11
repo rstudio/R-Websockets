@@ -335,7 +335,9 @@ create_server = function(
 
     frame = .SOCK_RECV_FRAME(j) # Try the latest protocol
 
-    if (frame$header$fin == 0){
+    if (is.null(frame)){
+      websocket_close(J)
+    } else if (frame$header$fin == 0){
       server$store_fragment(WS=J,frame)
     } else if (frame$header$fin == 1){
       frame = server$coalesce_fragments(WS=J,frame)
