@@ -172,6 +172,28 @@ create_server = function(
                       cat("Client socket",WS$socket," has been established.\n")
                    },envir=w)
   assign('is.binary', is.binary, envir=w)
+
+  w$accumulate_fragment = function(WS,frame){
+    if (is.null(WS$frames))
+      WS$frames = list()
+    WS$frames[[length(WS$frames)+1]] = frame
+  }
+
+  w$coalesce_fragments = function(WS,frame){
+    if (is.null(WS$frames)) return(frame)
+
+    WS$frames[[length(WS$frames)+1]] = frame
+    
+    # First frame contains the opcode, so we will coalesce all data parts into
+    # that one.
+    frame = WS$frames[[1]]
+    frame$data = unlist(lapply(WS$frames,function(f) f$data))
+
+    WS$frames = NULL
+
+    frame
+  }
+
   reg.finalizer(w, function(e) {websocket_close(e)})
   return(w)
 }
@@ -198,6 +220,7 @@ create_server = function(
   invisible()
 }
 
+
 # Naming convention may change in a futer version: 'context' will be
 # replaced by 'server.' Both are present in this version for compatibility
 # with old package versions.
@@ -205,89 +228,132 @@ create_server = function(
 {
   socks = c(server$server_socket,
     unlist(lapply(server$client_sockets,function(x) x$socket)))
-  if(length(socks)<1) return(invisible())
-  s = .SOCK_POLL(socks, timeout=timeout)
-  for(j in s){
-    if(j==server$server_socket){
-# New client connection
-      .add_client(j,server)
-    }
-    else{
-# j holds just the socket file descriptor, or a negated descriptor
-# indicating an error condition. Retrieve the client socket from the server
-# environment in J.
-      J = server$client_sockets[[as.character(abs(j))]]
-      if(j<0) {
-# Poll reports an error condition for this socket. Close it.
-        websocket_close(J)
-        next
-      }
-# A connected client is sending us something!
-      if(J$new) {
-# This is a new client connection, handshake.
-        J$new = FALSE
-        x = .SOCK_RECV_HTTP_HEAD(j)
-        h = .parse_header(x)
-        if(is.null(h)) {
-# Shucks, something wrong with this client. Drop him.
-          websocket_close(J)
-          next
-        }
-        v = 0
-        if(!is.null(h[["Sec-WebSocket-Version"]]))
-          if(as.numeric(h[["Sec-WebSocket-Version"]])>=4) v = 4
-        h$v = v
-# Stash this client's header, identifying websocket protocol version, etc.
-# in the appropriate client_socket list
-        cs = server$client_sockets
-        J$wsinfo = h
-        cs[[as.character(j)]] = J
-        assign("client_sockets",cs,envir=server)
 
-        if(is.null(h$Upgrade)) {
-# Not a handshake request, serve a static web page
-          if(is.function(server$static)) {
-# 
-# NOTE: CONNECTION REMAINS OPEN IF STATIC WEB SERVICE DOES NOT RETURN TRUE
-# We allow this case to pass connection on to ancillary service, for example. 
-            if(server$static(j,h)) .remove_client(J)
-          } else .remove_client(J)
-          next
-        }
-# Negotiate a websocket connection
-        if(v<4) .SOCK_SEND(j,.v00_resp_101(h, j))
-        else .SOCK_SEND(j,.v04_resp_101(h))
-# Trigger callback for newly-established connections
-        if(is.function(server$established))
-          server$established(WS=J)
-        next
-      } else if(J$wsinfo$v < 4) {
-# Old protocol
-        x = .SOCK_RECV_FRAME00(j,max_buffer_size=getOption("websockets_max_buffer_size"))
-      } else {
-# Try the latest protocol
-        x = .SOCK_RECV_FRAME(j,max_buffer_size=getOption("websockets_max_buffer_size"))
-      }
-      if(length(x)<1) {
-# Can't have an empty transmission, close the socket.
+  if (length(socks)<1) return(invisible())
+
+  s = .SOCK_POLL(socks, timeout=timeout)
+
+  # Loop handles three case:
+  # 1. New client connections
+  # 2. Client Web or Protocol Upgrade request
+  # 3. Client Websocket Frame to read and respond to
+  for (j in s){
+
+    # 1. New client connection on listening socket
+    if (j==server$server_socket){
+      .add_client(j,server)
+      next
+    }
+
+    # Something to read from connected client
+
+    # j holds just the socket file descriptor, or a negated descriptor
+    # indicating an error condition. Retrieve the client socket from the
+    # server environment in J.
+    J = server$client_sockets[[as.character(abs(j))]]
+
+    # Poll reports an error condition for this socket. Close it.
+    if (j<0) {
+      websocket_close(J)
+      next
+    }
+
+    # 2. Client Web or Protocol Upgrade request
+    if (J$new) {
+
+      J$new = FALSE
+      J$wsinfo = .parse_header(.SOCK_RECV_HTTP_HEAD(j))
+
+      # Something wrong with client: close connection.
+      if (is.null(J$wsinfo)) {
         websocket_close(J)
         next
       }
-# Burn payload if we can't use it.
-      if(!is.function(server$receive)) next
-      if(J$wsinfo$v < 4) {
-        server$receive(WS=J, DATA=.v00_unframe(x), HEADER=NULL)
-      }
-      else{
-        DATA = .unframe(x)
-        if(DATA$header$opcode < 3){
-          server$receive(WS=J, DATA=DATA$data, HEADER=DATA$header)
-        } else if(DATA$header$opcode == 8) {
-          websocket_close(J)
-          next
+
+      if (!is.null(J$wsinfo[["Sec-WebSocket-Version"]]) &&
+        (as.numeric(J$wsinfo[["Sec-WebSocket-Version"]])>=4) )
+        J$wsinfo$v = 4
+      else
+        J$wsinfo$v = 0
+
+      # Stash this client's header, identifying websocket protocol version, 
+      # etc. in the appropriate client_socket list
+      server$client_sockets[[as.character(j)]] = J
+
+      # Web request
+      if (is.null(J$wsinfo$Upgrade)) {
+
+        # Not a handshake request, serve a static web page
+        if (is.function(server$static)) {
+
+          # NOTE: CONNECTION REMAINS OPEN IF STATIC WEB SERVICE DOES NOT 
+          # RETURN TRUE. We allow this case to pass connection on to
+          # ancillary service, for example. 
+          if(server$static(j,J$wsinfo)) .remove_client(J)
+
+        } else {
+           .remove_client(J)
         }
+        next
+      }
+
+      # Protocol Upgrade: negotiate a websocket connection
+      if (J$wsinfo$v<4)
+        .SOCK_SEND(j,.v00_resp_101(J$wsinfo, j))
+      else 
+        .SOCK_SEND(j,.v04_resp_101(J$wsinfo))
+
+      # Trigger callback for newly-established connections
+      if (is.function(server$established))
+        server$established(WS=J)
+
+      next
+    } 
+    
+    # 3. Client Websocket Frame to read and respond to
+
+    # 3.1 Old Protocol
+
+    if (J$wsinfo$v < 4) {
+      frame = .SOCK_RECV_FRAME00(j) # Old protocol
+
+      if (length(frame)<1) {
+      # Can't have an empty transmission, close the socket.
+        websocket_close(J)
+        next
+      }
+
+      # Drop payload if we can't use it.
+      if (!is.function(server$receive)) next
+
+      server$receive(WS=J, DATA=.v00_unframe(frame), HEADER=NULL)
+
+      next
+    }
+
+	  # 3.2 New Protocol
+
+    frame = .SOCK_RECV_FRAME(j) # Try the latest protocol
+
+    if (is.null(frame)){
+      websocket_close(J)
+    } else if (frame$header$fin == 0){
+      server$store_fragment(WS=J,frame)
+    } else if (frame$header$fin == 1){
+      frame = server$coalesce_fragments(WS=J,frame)
+      if (frame$header$opcode %in% c(0,1,2) && is.function(server$receive)){
+        server$receive(WS=J, DATA=frame$data, HEADER=frame$header)
+      } else if (frame$header$opcode == 8) {
+        websocket_close(J)
+      } else if (frame$header$opcode == 9) {
+        .websocket_pong(J,frame)
+      } else if (frame$header$opcode == 10) {
+        .websocket_ping(J,frame)
+      } else {
+        # ignore frame
       }
     }
+
   }
 }
 

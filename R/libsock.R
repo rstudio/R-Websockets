@@ -27,14 +27,14 @@
   .Call('SOCK_RECV', as.integer(socket), as.integer(external_pointer), as.integer(buf_size), as.numeric(max_buffer_size), PACKAGE='websockets')
 }
 
-.SOCK_RECV_FRAME = function(socket, external_pointer=FALSE, max_buffer_size=2^24)
+.SOCK_RECV_FRAME = function(socket, max_buffer_size=getOption("websockets_max_buffer_size"))
 {
-  .Call('SOCK_RECV_FRAME', as.integer(socket), as.integer(external_pointer), as.numeric(max_buffer_size), PACKAGE='websockets')
+  .Call('SOCK_RECV_FRAME', as.integer(socket), as.numeric(max_buffer_size), PACKAGE='websockets')
 }
 
-.SOCK_RECV_FRAME00 = function(socket, external_pointer=FALSE, max_buffer_size=2^24)
+.SOCK_RECV_FRAME00 = function(socket, max_buffer_size=getOption("websockets_max_buffer_size"))
 {
-  .Call('SOCK_RECV_FRAME00', as.integer(socket), as.integer(external_pointer), as.numeric(max_buffer_size), PACKAGE='websockets')
+  .Call('SOCK_RECV_FRAME00', as.integer(socket), as.numeric(max_buffer_size), PACKAGE='websockets')
 }
 
 .SOCK_RECV_HTTP_HEAD = function(socket)
