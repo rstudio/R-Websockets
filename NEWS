@@ -3,6 +3,9 @@ Changes in 1.1.5:
   silently).
 - Fixed a bug where server socket could be inadvertently closed when an older
   socket was finalized by the gc.
+- Added support for fragmented messages and control frames.
+- Added support for ping/pong messages.
+- Fix buggy interpretation of frame header.
 
 Changes in 1.1.2--1.1.4:
 - Added a function called 'daemonize' that services websockets from the main
