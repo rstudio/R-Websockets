@@ -3,3 +3,6 @@ exportPattern("^[[:alpha:]]+")
 
 exportClasses(websocket)
 #exportMethods(cat)
+
+import(caTools)
+import(digest)
