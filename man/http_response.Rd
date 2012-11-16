@@ -10,6 +10,7 @@ http_response(socket, status=200, content_type="text/html; charset=UTF-8", conte
   \item{status}{An http numeric status code.}
   \item{content_type}{The http content type.}
   \item{content}{The http content (normally of type raw).}
+  \item{headers}{Additional headers to send with the response. Do not include \code{Date}, \code{Content-Type} or \code{Content-Length} headers.}
 }
 \details{Form an http response and send it to the specified socket, closing the
 socket connection when done.  }
