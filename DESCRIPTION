@@ -3,7 +3,7 @@ Type: Package
 Title: HTML 5 Websocket Interface for R
 Version: 1.1.6
 Date: 2012-10-25
-Author: B. W. Lewis <blewis@illposed.net>
+Author: B. W. Lewis <blewis@illposed.net>, Jeffrey Horner <jeffrey.horner@gmail.com>
 Maintainer: Joe Cheng <joe@rstudio.org>
 Description: A simple HTML5 websocket interface for R.
 Depends: R (>= 2.5)
