@@ -82,13 +82,9 @@ static_file_service = function(fn)
       file_content <<- paste(readLines(f),collapse="\n")
       close(f)
     }
-    if(is.null(header$RESOURCE)) return(.http_400(socket))
-    if(header$RESOURCE == "/favicon.ico") {
-      .http_200(socket,"image/x-icon",.html5ico)
-    }
-    else {
-      .http_200(socket,content=file_content)
-    }
+    if(is.null(header$RESOURCE))
+      return(.http_400(socket))
+    .http_200(socket,content=file_content)
     return(TRUE)
   }
 }
@@ -98,13 +94,9 @@ static_file_service = function(fn)
 static_text_service = function(text)
 {
   function(socket, header) {
-    if(is.null(header$RESOURCE)) return(.http_400(socket))
-    if(header$RESOURCE == "/favicon.ico") {
-      .http_200(socket,"image/x-icon",.html5ico)
-    }
-    else {
-      .http_200(socket,content=text)
-    }
+    if(is.null(header$RESOURCE))
+      return(.http_400(socket))
+    .http_200(socket,content=text)
     return(TRUE)
   }
 }
