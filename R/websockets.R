@@ -475,7 +475,7 @@ http_vars = function(socket, header)
 # A basic and generic http response function
 http_response = function(socket, status=200,
                          content_type="text/html; charset=UTF-8", content="",
-                         headers=list())
+                         headers=c())
 {
   n = ifelse(is.character(content),nchar(content), length(content))
   h=paste("HTTP/1.1",status,"OK\r\nServer: R/Websocket\r\n")
@@ -483,7 +483,7 @@ http_response = function(socket, status=200,
   h=paste(h,"Date: ",date(),"\r\n",sep="")
   if (length(headers) > 0)
   {
-    if (any(names(headers)) == '' ||
+    if (any(names(headers) == '') ||
           any(grepl('[^a-zA-Z0-9-]', names(headers))) || 
           any(grepl('\n', headers)))
       stop("Invalid header argument passed to http_response")
