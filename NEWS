@@ -1,5 +1,6 @@
 Changes in 1.1.6:
 - Use Import for dependency packages instead of Depends.
+- `http_response` function now optionally takes custom headers.
 
 Changes in 1.1.5:
 - Signal an error when unable to bind socket listener (as opposed to failing
