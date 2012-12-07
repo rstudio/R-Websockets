@@ -477,7 +477,9 @@ http_response = function(socket, status=200,
                          content_type="text/html; charset=UTF-8", content="",
                          headers=c())
 {
-  n = ifelse(is.character(content),nchar(content), length(content))
+  if (is.character(content)) content = charToRaw(content)
+  n = length(content)
+
   h=paste("HTTP/1.1",status,"OK\r\nServer: R/Websocket\r\n")
   h=paste(h,"Content-Type: ",content_type, "\r\n",sep="")
   h=paste(h,"Date: ",date(),"\r\n",sep="")
@@ -495,10 +497,7 @@ http_response = function(socket, status=200,
   }
   h=paste(h,"Content-Length: ",n,"\r\n\r\n",sep="")
   .SOCK_SEND(socket,charToRaw(h))
-  if(is.character(content))
-    .SOCK_SEND(socket,charToRaw(content))
-  else
-    .SOCK_SEND(socket,content)
+  .SOCK_SEND(socket,content)
   .SOCK_CLOSE(socket)
   TRUE
 }
