@@ -1,3 +1,6 @@
+Changes in 1.1.7:
+- Fix bug in Content-Length calculation
+
 Changes in 1.1.6:
 - Use Import for dependency packages instead of Depends.
 - `http_response` function now optionally takes custom headers.
