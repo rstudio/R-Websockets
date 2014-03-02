@@ -1,2 +1,3 @@
+rchat    	A basic group R chat session.
 websockets 	A very basic example.
 fortunes 	A silly chat-like example with a wordcloud plot and R fotunes.
