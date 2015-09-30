@@ -273,7 +273,7 @@ create_server = function(
       server$client_sockets[[as.character(j)]] = J
 
       # Web request
-      if (is.null(J$wsinfo$Upgrade)) {
+      if (is.null(J$wsinfo[["Upgrade"]])) {
 
         # Not a handshake request, serve a static web page
         if (is.function(server$static)) {
