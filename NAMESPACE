@@ -5,4 +5,5 @@ exportClasses(websocket)
 #exportMethods(cat)
 
 import(digest)
+import(urltools)
 import(caTools)
