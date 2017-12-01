@@ -356,14 +356,20 @@ create_server = function(
 # 3. Connect to the server and establish
 #    websocket or fail.
 # Use the same callback functions as with server.
-`websocket` = function(url,port=80,subprotocol="chat", version=0)
+`websocket` = function(url,port=NA,subprotocol="chat", version=0)
 {
   nonce = as.raw(replicate(16,floor(runif(1)*256)))
-  h = paste("GET / HTTP/1.1",sep="")
+  u = url_parse(url)
+  if (is.na(u$port)) {
+    u$port = 80
+  }
+  if (!is.na(port)) {
+    u$port = port
+  }
+  h = paste("GET", url, "HTTP/1.1")
   h = paste(h, "Upgrade: WebSocket", sep="\r\n")
   h = paste(h, "Connection: Upgrade", sep="\r\n")
-  u = gsub("^.*://","",url)
-  ur = paste("Host:",u)
+  ur = paste("Host:", paste(u$domain, ":", u$port, sep = ""))
   h = paste(h, ur, sep="\r\n")
   p = paste("Sec-WebSocket-Protocol:",subprotocol)
   h = paste(h, p, sep="\r\n")
@@ -424,7 +430,7 @@ create_server = function(
   }
 
   context = createContext(port, webpage=url, server=FALSE)
-  s = .SOCK_CONNECT (u, port)
+  s = .SOCK_CONNECT (u$domain, u$port)
   if(s<1) {
     .SOCK_CLOSE(s)
     stop("Connection error")
